@@ -1,0 +1,1556 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Key Collection</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & Noto Sans JP & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Inter"', '"Noto Sans JP"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            mono: {
+              50: '#fafafa',
+              100: '#f4f4f5',
+              200: '#e4e4e7',
+              300: '#d4d4d8',
+              400: '#a1a1aa',
+              500: '#71717a',
+              600: '#52525b',
+              700: '#3f3f46',
+              800: '#27272a',
+              900: '#18181b',
+              950: '#09090b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* カスタムスクロールバーと微細なアニメーション */
+    body {
+      background-color: #fafafa;
+      color: #18181b;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Favoritesグリッド: スマホ2カラム / PC(md以上)3カラム・間隔16px・縦長 */
+    .favorites-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    @media (min-width: 768px) {
+      .favorites-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+      }
+    }
+
+    /* メイン全キャラグリッド: スマホ3カラム / PC(md以上)4カラム・間隔16px・正方形 */
+    .collection-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    @media (min-width: 768px) {
+      .collection-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+      }
+    }
+
+    /* カードのアスペクト比（Favoritesは縦長、Allは正方形）とホバーアニメーション */
+    .char-card {
+      position: relative;
+      overflow: hidden;
+      background-color: #e4e4e7;
+    }
+
+    .char-card--portrait {
+      aspect-ratio: 3 / 4;
+    }
+
+    .char-card--square {
+      aspect-ratio: 1 / 1;
+    }
+
+    .char-card img {
+      transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), filter 0.4s ease;
+    }
+
+    .char-card:hover img,
+    .char-card.is-active img {
+      transform: scale(1.04);
+    }
+
+    .char-overlay {
+      opacity: 0;
+      transition: opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+    }
+
+    .char-card:hover .char-overlay,
+    .char-card.is-active .char-overlay {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* カスタムスクロールバー（ホバーオーバーレイ内の長文メモ用） */
+    .thin-scroll::-webkit-scrollbar {
+      width: 3px;
+    }
+    .thin-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .thin-scroll::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.35);
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-mono-900 selection:text-white">
+
+  <!-- ==================== HEADER ==================== -->
+  <header class="sticky top-0 z-30 bg-mono-50/90 backdrop-blur-md border-b border-mono-200">
+    <div class="max-w-6xl mx-auto px-4 sm:px-8 h-16 sm:h-20 flex items-center justify-between gap-4">
+      <!-- シンプルなタイトルのみ -->
+      <div class="flex items-baseline gap-3">
+        <h1 class="text-lg sm:text-xl font-medium tracking-tight text-mono-950">
+          My Key Collection
+        </h1>
+      </div>
+
+      <!-- アクションボタン群 -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <!-- バックアップ / 復元 -->
+        <button
+          type="button"
+          onclick="openBackupModal()"
+          class="px-3 py-2 text-xs font-medium text-mono-600 hover:text-mono-950 bg-transparent hover:bg-mono-200/60 rounded-lg transition-colors"
+          title="データのバックアップ・復元"
+        >
+          Backup
+        </button>
+
+        <!-- 新規登録ボタン -->
+        <button
+          type="button"
+          onclick="openEditorModal()"
+          class="inline-flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm font-medium text-white bg-mono-900 hover:bg-mono-800 active:bg-mono-950 rounded-lg shadow-sm transition-all"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          <span>Add</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== FILTER & SORT BAR ==================== -->
+  <section class="max-w-6xl w-full mx-auto px-4 sm:px-8 pt-6 pb-4">
+    <div class="flex flex-col gap-3">
+      <!-- 上段: 検索バー & お気に入り絞り込み & Key数 & 並び替え -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5">
+        <!-- キーワード検索 -->
+        <div class="lg:col-span-5 relative">
+          <svg class="w-4 h-4 text-mono-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+          </svg>
+          <input
+            id="searchInput"
+            type="text"
+            placeholder="名前・作品・タグ・メモで検索..."
+            class="w-full pl-9 pr-8 py-2 text-xs sm:text-sm bg-white border border-mono-200 rounded-lg text-mono-900 placeholder-mono-400 focus:outline-none focus:border-mono-500 transition-colors"
+            oninput="applyFilters()"
+          />
+          <button
+            id="clearSearchBtn"
+            type="button"
+            onclick="document.getElementById('searchInput').value=''; applyFilters();"
+            class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-mono-400 hover:text-mono-700 p-0.5"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- お気に入り絞り込みトグル -->
+        <div class="lg:col-span-2">
+          <button
+            id="favFilterBtn"
+            type="button"
+            onclick="toggleFavoriteFilter()"
+            class="w-full h-full px-3 py-2 text-xs sm:text-sm bg-white border border-mono-200 rounded-lg text-mono-700 hover:border-mono-400 flex items-center justify-center gap-1.5 transition-colors"
+          >
+            <svg id="favFilterIcon" class="w-3.5 h-3.5 text-mono-400 transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
+            </svg>
+            <span>Favorites</span>
+          </button>
+        </div>
+
+        <!-- Key数で絞り込み -->
+        <div class="lg:col-span-2">
+          <select
+            id="keyFilter"
+            onchange="applyFilters()"
+            title="Key数で絞り込み"
+            class="w-full px-3 py-2 text-xs sm:text-sm font-mono bg-white border border-mono-200 rounded-lg text-mono-700 focus:outline-none focus:border-mono-500 transition-colors"
+          >
+            <option value="all">Key: All</option>
+            <option value="1">Key: 1+</option>
+            <option value="3">Key: 3+</option>
+            <option value="5">Key: 5+</option>
+            <option value="10">Key: 10+</option>
+            <option value="exact">Key: 指定数...</option>
+          </select>
+        </div>
+
+        <!-- 並び替え -->
+        <div class="lg:col-span-3">
+          <select
+            id="sortSelect"
+            onchange="applyFilters()"
+            class="w-full px-3 py-2 text-xs sm:text-sm bg-white border border-mono-200 rounded-lg text-mono-700 focus:outline-none focus:border-mono-500 transition-colors"
+          >
+            <option value="key_desc">Key数が多い順</option>
+            <option value="key_asc">Key数が少ない順</option>
+            <option value="newest">登録が新しい順</option>
+            <option value="oldest">登録が古い順</option>
+            <option value="name_asc">名前順 (A-Z)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 指定Key数入力（"指定数..."選択時のみ表示） & ステータスバー -->
+      <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-mono-500 pt-1">
+        <div class="flex flex-wrap items-center gap-3">
+          <div class="flex items-center gap-2 font-mono">
+            <span id="resultCount">0 characters</span>
+            <span class="text-mono-300">/</span>
+            <span id="totalKeysCount">0 keys</span>
+          </div>
+
+          <!-- ピンポイントKey数入力 -->
+          <div id="exactKeyWrapper" class="hidden items-center gap-1.5">
+            <label for="exactKeyInput" class="text-mono-500">Key数 =</label>
+            <input
+              id="exactKeyInput"
+              type="number"
+              min="0"
+              value="1"
+              oninput="applyFilters()"
+              class="w-16 px-2 py-0.5 font-mono text-xs bg-white border border-mono-300 rounded text-mono-900 focus:outline-none focus:border-mono-600"
+            />
+          </div>
+
+          <button
+            id="resetFiltersBtn"
+            type="button"
+            onclick="resetAllFilters()"
+            class="hidden text-mono-500 hover:text-mono-900 underline underline-offset-2 transition-colors"
+          >
+            条件をリセット
+          </button>
+        </div>
+
+        <!-- サンプルデータ案内（サンプルが残っている間のみ表示） -->
+        <div id="sampleNotice" class="hidden items-center gap-2 text-mono-400">
+          <span>※サンプル表示中</span>
+          <button
+            type="button"
+            onclick="clearSampleData()"
+            class="text-mono-600 hover:text-mono-950 underline underline-offset-2"
+          >
+            サンプルを一括削除
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== MAIN GALLERY ==================== -->
+  <main class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-8 pt-2 pb-16 space-y-14">
+    <!-- 【Favorites】セクション（お気に入り登録キャラがある場合表示） -->
+    <section id="favoritesSection" class="hidden">
+      <div class="flex items-center justify-between mb-6 pb-2.5 border-b border-mono-200">
+        <div class="flex items-center gap-2">
+          <svg class="w-3.5 h-3.5 text-mono-900 fill-mono-900" viewBox="0 0 24 24">
+            <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
+          </svg>
+          <h2 class="text-xs font-mono uppercase tracking-widest text-mono-800 font-medium">Favorites</h2>
+        </div>
+        <span id="favoritesCountBadge" class="font-mono text-xs text-mono-400">0</span>
+      </div>
+      <div id="favoritesGrid" class="favorites-grid"></div>
+    </section>
+
+    <!-- 全キャラ一覧セクション -->
+    <section id="allCharactersSection">
+      <div id="allCharactersHeader" class="hidden items-center justify-between mb-6 pb-2.5 border-b border-mono-200">
+        <h2 class="text-xs font-mono uppercase tracking-widest text-mono-500 font-medium">All Characters</h2>
+      </div>
+      <!-- 4カラム(PC) / 3カラム(スマホ) 正方形グリッド -->
+      <div id="galleryGrid" class="collection-grid"></div>
+    </section>
+
+    <!-- 0件時のエンプティステート -->
+    <div id="emptyState" class="hidden py-24 text-center">
+      <p class="text-sm text-mono-500 mb-4">表示できるキャラクターがいません</p>
+      <button
+        type="button"
+        onclick="openEditorModal()"
+        class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-mono-900 bg-white border border-mono-300 hover:border-mono-900 rounded-lg transition-colors"
+      >
+        <span>+ 最初のキャラクターを登録する</span>
+      </button>
+    </div>
+  </main>
+
+  <!-- ==================== ADD / EDIT MODAL ==================== -->
+  <div
+    id="editorModal"
+    class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-xs p-4 overflow-y-auto"
+    onclick="if(event.target === this) closeEditorModal()"
+  >
+    <div class="bg-white border border-mono-200 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden my-auto">
+      <!-- モーダルヘッダー -->
+      <div class="px-6 py-4 border-b border-mono-100 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <h2 id="modalTitle" class="text-base font-medium text-mono-900">キャラクター登録</h2>
+          <!-- お気に入りハートトグルボタン -->
+          <button
+            type="button"
+            id="modalFavToggleBtn"
+            onclick="toggleFormFavorite()"
+            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-mono-200 hover:border-mono-400 text-xs transition-colors"
+            title="お気に入りに登録する"
+          >
+            <svg id="modalFavIcon" class="w-3.5 h-3.5 text-mono-400 transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
+            </svg>
+            <span id="modalFavLabel" class="text-[11px] font-medium text-mono-600">Favorite</span>
+          </button>
+        </div>
+
+        <button
+          type="button"
+          onclick="closeEditorModal()"
+          class="p-1.5 text-mono-400 hover:text-mono-900 rounded-lg transition-colors"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- フォーム本体 -->
+      <form id="charForm" onsubmit="handleSaveCharacter(event)" class="p-6 space-y-5 max-h-[82vh] overflow-y-auto">
+        <input type="hidden" id="charId" />
+
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+          <!-- 左側: 画像登録 & プレビュー (5カラム) -->
+          <div class="md:col-span-5 flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+              <label class="text-xs font-medium text-mono-700">画像 <span class="text-mono-400">*</span></label>
+              <!-- URL / ファイルアップロード切替タブ -->
+              <div class="inline-flex rounded-lg bg-mono-100 p-0.5 text-[11px]">
+                <button
+                  type="button"
+                  id="tabUrlBtn"
+                  onclick="switchImageMode('url')"
+                  class="px-2.5 py-1 rounded-md font-medium bg-white text-mono-900 shadow-2xs transition-all"
+                >
+                  URL
+                </button>
+                <button
+                  type="button"
+                  id="tabFileBtn"
+                  onclick="switchImageMode('file')"
+                  class="px-2.5 py-1 rounded-md font-medium text-mono-500 hover:text-mono-900 transition-all"
+                >
+                  ファイル
+                </button>
+              </div>
+            </div>
+
+            <!-- URL入力フィールド -->
+            <div id="imageUrlBox">
+              <input
+                id="imageUrlInput"
+                type="url"
+                placeholder="https://..."
+                oninput="updateImagePreviewFromUrl(this.value)"
+                class="w-full px-3 py-2 text-xs bg-mono-50 border border-mono-200 rounded-lg text-mono-900 placeholder-mono-400 focus:outline-none focus:bg-white focus:border-mono-500"
+              />
+            </div>
+
+            <!-- ファイル選択フィールド -->
+            <div id="imageFileBox" class="hidden">
+              <label class="flex flex-col items-center justify-center w-full py-3 px-3 border border-dashed border-mono-300 hover:border-mono-600 rounded-lg bg-mono-50 hover:bg-mono-100/70 cursor-pointer transition-colors">
+                <span class="text-xs text-mono-600 font-medium">画像ファイルを選択</span>
+                <span class="text-[10px] text-mono-400 mt-0.5">自動で軽量リサイズ保存されます</span>
+                <input
+                  id="imageFileInput"
+                  type="file"
+                  accept="image/*"
+                  onchange="handleFileSelect(event)"
+                  class="hidden"
+                />
+              </label>
+            </div>
+
+            <!-- ライブプレビュー枠 -->
+            <div class="relative w-full aspect-[3/4] rounded-xl overflow-hidden bg-mono-100 border border-mono-200 flex items-center justify-center">
+              <img
+                id="imagePreview"
+                src=""
+                alt="Preview"
+                class="hidden w-full h-full object-cover"
+                onerror="handlePreviewError()"
+              />
+              <div id="previewPlaceholder" class="text-center p-4">
+                <p class="text-xs text-mono-400">プレビュー</p>
+              </div>
+              <!-- 右上Key数プレビューバッジ -->
+              <span
+                id="previewKeyBadge"
+                class="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-md bg-black/75 backdrop-blur-xs text-white font-mono text-xs font-medium"
+              >
+                1
+              </span>
+            </div>
+          </div>
+
+          <!-- 右側: テキスト項目群 (7カラム) -->
+          <div class="md:col-span-7 space-y-4">
+            <!-- キャラ名（ローマ字表記メイン & 日本語表記） -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label for="nameRomaji" class="block text-xs font-medium text-mono-700 mb-1">
+                  キャラ名（ローマ字表記） <span class="text-mono-400">*</span>
+                </label>
+                <input
+                  id="nameRomaji"
+                  type="text"
+                  required
+                  placeholder="例: Rem"
+                  class="w-full px-3 py-2 text-sm bg-mono-50 border border-mono-200 rounded-lg text-mono-900 placeholder-mono-400 focus:outline-none focus:bg-white focus:border-mono-500"
+                />
+              </div>
+              <div>
+                <label for="nameJp" class="block text-xs font-medium text-mono-700 mb-1">
+                  キャラ名（日本語表記）
+                </label>
+                <input
+                  id="nameJp"
+                  type="text"
+                  placeholder="例: レム"
+                  class="w-full px-3 py-2 text-sm bg-mono-50 border border-mono-200 rounded-lg text-mono-900 placeholder-mono-400 focus:outline-none focus:bg-white focus:border-mono-500"
+                />
+              </div>
+            </div>
+
+            <!-- Keyの数 & 作品名 -->
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+              <div class="sm:col-span-4">
+                <label for="keyCount" class="block text-xs font-medium text-mono-700 mb-1">
+                  Keyの数 <span class="text-mono-400">*</span>
+                </label>
+                <input
+                  id="keyCount"
+                  type="number"
+                  min="0"
+                  max="9999"
+                  value="1"
+                  required
+                  oninput="handleKeyCountChange(this.value)"
+                  class="w-full px-3 py-2 text-sm font-mono bg-mono-50 border border-mono-200 rounded-lg text-mono-900 focus:outline-none focus:bg-white focus:border-mono-500"
+                />
+              </div>
+              <div class="sm:col-span-8">
+                <label for="seriesName" class="block text-xs font-medium text-mono-700 mb-1">
+                  作品名
+                </label>
+                <input
+                  id="seriesName"
+                  type="text"
+                  list="seriesSuggestions"
+                  placeholder="例: Re:Zero kara Hajimeru Isekai Seikatsu"
+                  class="w-full px-3 py-2 text-sm bg-mono-50 border border-mono-200 rounded-lg text-mono-900 placeholder-mono-400 focus:outline-none focus:bg-white focus:border-mono-500"
+                />
+                <datalist id="seriesSuggestions"></datalist>
+              </div>
+            </div>
+
+            <!-- 鍵をゲットした日付（ホバー非表示・記録用） -->
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label class="block text-xs font-medium text-mono-700">
+                  鍵をゲットした日付 <span class="text-mono-400 font-normal">（一覧のホバーには非表示）</span>
+                </label>
+                <button
+                  type="button"
+                  onclick="addKeyDateRow()"
+                  class="text-[11px] font-medium text-mono-600 hover:text-mono-950 underline underline-offset-2"
+                >
+                  + 日付枠を追加
+                </button>
+              </div>
+              <div id="keyDatesContainer" class="space-y-1.5 max-h-32 overflow-y-auto pr-1"></div>
+            </div>
+
+            <!-- タグ（複数登録可） -->
+            <div>
+              <label class="block text-xs font-medium text-mono-700 mb-1">
+                タグ <span class="text-mono-400 font-normal">（Enterまたは追加ボタンで複数登録）</span>
+              </label>
+              <div class="flex gap-2">
+                <input
+                  id="tagInput"
+                  type="text"
+                  placeholder="#protagonist"
+                  onkeydown="if(event.key === 'Enter'){ event.preventDefault(); addTagFromInput(); }"
+                  class="flex-1 px-3 py-2 text-xs font-mono bg-mono-50 border border-mono-200 rounded-lg text-mono-900 placeholder-mono-400 focus:outline-none focus:bg-white focus:border-mono-500"
+                />
+                <button
+                  type="button"
+                  onclick="addTagFromInput()"
+                  class="px-3 py-2 text-xs font-medium text-mono-700 bg-mono-100 hover:bg-mono-200 rounded-lg transition-colors"
+                >
+                  追加
+                </button>
+              </div>
+
+              <!-- 登録済みタグチップ表示エリア -->
+              <div id="selectedTagsContainer" class="flex flex-wrap gap-1.5 mt-2"></div>
+
+              <!-- 既存タグからのクイック選択 -->
+              <div id="existingTagsQuickPick" class="hidden flex-wrap items-center gap-1 mt-2 pt-2 border-t border-mono-100">
+                <span class="text-[10px] text-mono-400 mr-1">候補:</span>
+              </div>
+            </div>
+
+            <!-- メモ -->
+            <div>
+              <label for="memoInput" class="block text-xs font-medium text-mono-700 mb-1">
+                メモ
+              </label>
+              <textarea
+                id="memoInput"
+                rows="2"
+                placeholder="自由記述（例: 10key達成目標、トレード不可など）"
+                class="w-full px-3 py-2 text-xs leading-relaxed bg-mono-50 border border-mono-200 rounded-lg text-mono-900 placeholder-mono-400 focus:outline-none focus:bg-white focus:border-mono-500 resize-none"
+              ></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- モーダルフッター（削除 & 保存） -->
+        <div class="pt-4 border-t border-mono-100 flex items-center justify-between gap-3">
+          <div>
+            <button
+              type="button"
+              id="deleteCharBtn"
+              onclick="requestDeleteCharacter()"
+              class="hidden px-3 py-2 text-xs font-medium text-mono-500 hover:text-mono-950 hover:bg-mono-100 rounded-lg transition-colors"
+            >
+              このキャラを削除
+            </button>
+            <!-- インライン削除確認（alert/confirm不使用） -->
+            <div id="deleteConfirmBox" class="hidden items-center gap-2">
+              <span class="text-xs text-mono-700">本当に削除しますか？</span>
+              <button
+                type="button"
+                onclick="confirmDeleteCharacter()"
+                class="px-2.5 py-1 text-xs font-medium text-white bg-mono-900 hover:bg-black rounded"
+              >
+                削除する
+              </button>
+              <button
+                type="button"
+                onclick="cancelDeleteCharacter()"
+                class="px-2 py-1 text-xs text-mono-500 hover:text-mono-800"
+              >
+                キャンセル
+              </button>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              onclick="closeEditorModal()"
+              class="px-4 py-2 text-xs font-medium text-mono-600 hover:text-mono-900 rounded-lg transition-colors"
+            >
+              キャンセル
+            </button>
+            <button
+              type="submit"
+              class="px-5 py-2 text-xs font-medium text-white bg-mono-900 hover:bg-mono-800 rounded-lg shadow-xs transition-colors"
+            >
+              保存する
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== BACKUP (EXPORT / IMPORT) MODAL ==================== -->
+  <div
+    id="backupModal"
+    class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-xs p-4"
+    onclick="if(event.target === this) closeBackupModal()"
+  >
+    <div class="bg-white border border-mono-200 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+      <div class="px-6 py-4 border-b border-mono-100 flex items-center justify-between">
+        <h2 class="text-sm font-medium text-mono-900">データのバックアップと復元</h2>
+        <button
+          type="button"
+          onclick="closeBackupModal()"
+          class="p-1 text-mono-400 hover:text-mono-900 rounded-lg"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-5">
+        <p class="text-xs text-mono-500 leading-relaxed">
+          登録データは自動的にこのブラウザ内に保存されます。別端末への移行や万が一の備えとして、JSONファイルでの書き出し・読み込みが可能です。
+        </p>
+
+        <!-- エクスポート -->
+        <div class="p-4 rounded-xl bg-mono-50 border border-mono-200/80 flex items-center justify-between gap-4">
+          <div>
+            <h3 class="text-xs font-medium text-mono-900">JSONファイルとして保存</h3>
+            <p class="text-[11px] text-mono-400 mt-0.5">現在の全データをダウンロード</p>
+          </div>
+          <button
+            type="button"
+            onclick="exportDataJson()"
+            class="px-3.5 py-2 text-xs font-medium text-white bg-mono-900 hover:bg-mono-800 rounded-lg shrink-0 transition-colors"
+          >
+            Export
+          </button>
+        </div>
+
+        <!-- インポート -->
+        <div class="p-4 rounded-xl bg-mono-50 border border-mono-200/80 flex items-center justify-between gap-4">
+          <div>
+            <h3 class="text-xs font-medium text-mono-900">JSONファイルから復元</h3>
+            <p class="text-[11px] text-mono-400 mt-0.5">既存のバックアップを読み込み</p>
+          </div>
+          <label class="px-3.5 py-2 text-xs font-medium text-mono-800 bg-white border border-mono-300 hover:border-mono-900 rounded-lg cursor-pointer shrink-0 transition-colors">
+            <span>Import</span>
+            <input
+              type="file"
+              accept=".json,application/json"
+              onchange="importDataJson(event)"
+              class="hidden"
+            />
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== TOAST NOTIFICATION ==================== -->
+  <div
+    id="toast"
+    class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full bg-mono-900 text-white text-xs font-medium shadow-lg opacity-0 pointer-events-none transition-opacity duration-300"
+  >
+    保存しました
+  </div>
+
+  <!-- ==================== JAVASCRIPT LOGIC ==================== -->
+  <script>
+    const STORAGE_KEY = 'mudae_my_key_collection_v1';
+
+    // 初回起動用のサンプルデータ（モノクロでスタイリッシュなプレースホルダー）
+    const SAMPLE_DATA = [
+      {
+        id: 'sample_1',
+        nameRomaji: 'Frieren',
+        nameJp: 'フリーレン',
+        keyCount: 12,
+        keyDates: ['2025-01-12', '2025-02-03', '2025-03-19'],
+        isFavorite: true,
+        series: 'Sousou no Frieren',
+        tags: ['#protagonist', '#mage', '#goldkey'],
+        memo: 'メイン推し。Chaos key到達済み。',
+        image: 'https://placehold.co/600x800/18181b/f4f4f5?text=Frieren',
+        isSample: true,
+        createdAt: Date.now() - 300000
+      },
+      {
+        id: 'sample_2',
+        nameRomaji: 'Makima',
+        nameJp: 'マキマ',
+        keyCount: 6,
+        keyDates: ['2025-04-01', '2025-05-15'],
+        isFavorite: true,
+        series: 'Chainsaw Man',
+        tags: ['#antagonist', '#goldkey'],
+        memo: 'あと4つで10key。トレード不可。',
+        image: 'https://placehold.co/600x800/27272a/e4e4e7?text=Makima',
+        isSample: true,
+        createdAt: Date.now() - 200000
+      },
+      {
+        id: 'sample_3',
+        nameRomaji: 'Violet Evergarden',
+        nameJp: 'ヴァイオレット・エヴァーガーデン',
+        keyCount: 3,
+        keyDates: ['2025-06-20'],
+        isFavorite: false,
+        series: 'Violet Evergarden',
+        tags: ['#protagonist', '#silverkey'],
+        memo: 'シルバーキー獲得。次は6key目標。',
+        image: 'https://placehold.co/600x800/3f3f46/fafafa?text=Violet',
+        isSample: true,
+        createdAt: Date.now() - 100000
+      }
+    ];
+
+    let characters = [];
+    let currentFormTags = [];
+    let currentFormKeyDates = [];
+    let currentFormFavorite = false;
+    let filterFavoritesOnly = false;
+    let currentImageData = '';
+    let currentImageMode = 'url';
+
+    // 初期化処理
+    window.addEventListener('DOMContentLoaded', () => {
+      loadCharacters();
+      populateFilterOptions();
+      applyFilters();
+    });
+
+    // LocalStorageから読み込み（既存データとの後方互換確保）
+    function loadCharacters() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw === null) {
+          characters = [...SAMPLE_DATA];
+          saveCharacters();
+        } else {
+          const parsed = JSON.parse(raw) || [];
+          characters = parsed.map(c => ({
+            ...c,
+            isFavorite: Boolean(c.isFavorite),
+            keyDates: Array.isArray(c.keyDates) ? c.keyDates : []
+          }));
+        }
+      } catch (e) {
+        console.error('Failed to load storage:', e);
+        characters = [];
+      }
+    }
+
+    // LocalStorageへ保存
+    function saveCharacters() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(characters));
+      } catch (e) {
+        showToast('保存容量の上限に達しました。画像を減らすかバックアップしてください。');
+      }
+    }
+
+    // トーストメッセージ表示
+    let toastTimer = null;
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.remove('opacity-0');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.add('opacity-0');
+      }, 2600);
+    }
+
+    // サンプルデータの一括削除
+    function clearSampleData() {
+      characters = characters.filter(c => !c.isSample);
+      saveCharacters();
+      populateFilterOptions();
+      applyFilters();
+      showToast('サンプルデータを削除しました');
+    }
+
+    // 作品名サジェスト用datalistの動的生成
+    function populateFilterOptions() {
+      const seriesDatalist = document.getElementById('seriesSuggestions');
+      if (!seriesDatalist) return;
+
+      const seriesSet = new Set();
+      characters.forEach(c => {
+        if (c.series && c.series.trim()) seriesSet.add(c.series.trim());
+      });
+
+      const sortedSeries = Array.from(seriesSet).sort((a, b) => a.localeCompare(b));
+      seriesDatalist.innerHTML = sortedSeries.map(s => `<option value="${escapeHtml(s)}">`).join('');
+    }
+
+    // お気に入りフィルター切替
+    function toggleFavoriteFilter() {
+      filterFavoritesOnly = !filterFavoritesOnly;
+      const btn = document.getElementById('favFilterBtn');
+      const icon = document.getElementById('favFilterIcon');
+
+      if (filterFavoritesOnly) {
+        btn.classList.add('bg-mono-900', 'text-white', 'border-mono-900');
+        btn.classList.remove('bg-white', 'text-mono-700', 'border-mono-200');
+        icon.classList.add('fill-white', 'text-white');
+        icon.classList.remove('text-mono-400');
+      } else {
+        btn.classList.remove('bg-mono-900', 'text-white', 'border-mono-900');
+        btn.classList.add('bg-white', 'text-mono-700', 'border-mono-200');
+        icon.classList.remove('fill-white', 'text-white');
+        icon.classList.add('text-mono-400');
+      }
+      applyFilters();
+    }
+
+    // フィルタリング＆ソート実行と描画
+    function applyFilters() {
+      const query = document.getElementById('searchInput').value.trim().toLowerCase();
+      const keyVal = document.getElementById('keyFilter').value;
+      const sortVal = document.getElementById('sortSelect').value;
+
+      // クリアボタン表示制御
+      document.getElementById('clearSearchBtn').classList.toggle('hidden', query === '');
+
+      // 指定Key数入力欄の表示制御
+      const exactWrapper = document.getElementById('exactKeyWrapper');
+      if (keyVal === 'exact') {
+        exactWrapper.classList.remove('hidden');
+        exactWrapper.classList.add('flex');
+      } else {
+        exactWrapper.classList.add('hidden');
+        exactWrapper.classList.remove('flex');
+      }
+
+      const exactKeyNum = parseInt(document.getElementById('exactKeyInput').value, 10) || 0;
+
+      // 条件リセットボタンの表示制御
+      const isFiltered = query !== '' || filterFavoritesOnly || keyVal !== 'all';
+      document.getElementById('resetFiltersBtn').classList.toggle('hidden', !isFiltered);
+
+      // 絞り込み
+      let filtered = characters.filter(c => {
+        if (filterFavoritesOnly && !c.isFavorite) return false;
+
+        const keys = Number(c.keyCount) || 0;
+        if (keyVal === 'exact') {
+          if (keys !== exactKeyNum) return false;
+        } else if (keyVal !== 'all') {
+          const minKeys = parseInt(keyVal, 10);
+          if (keys < minKeys) return false;
+        }
+
+        if (query) {
+          const haystack = [
+            c.nameRomaji,
+            c.nameJp,
+            c.series,
+            c.memo,
+            ...(c.tags || [])
+          ].join(' ').toLowerCase();
+          if (!haystack.includes(query)) return false;
+        }
+
+        return true;
+      });
+
+      // ソート
+      filtered.sort((a, b) => {
+        const keyA = Number(a.keyCount) || 0;
+        const keyB = Number(b.keyCount) || 0;
+        if (sortVal === 'key_desc') {
+          return keyB - keyA || (b.createdAt || 0) - (a.createdAt || 0);
+        }
+        if (sortVal === 'key_asc') {
+          return keyA - keyB || (b.createdAt || 0) - (a.createdAt || 0);
+        }
+        if (sortVal === 'newest') {
+          return (b.createdAt || 0) - (a.createdAt || 0);
+        }
+        if (sortVal === 'oldest') {
+          return (a.createdAt || 0) - (b.createdAt || 0);
+        }
+        if (sortVal === 'name_asc') {
+          return (a.nameRomaji || '').localeCompare(b.nameRomaji || '');
+        }
+        return 0;
+      });
+
+      // 総キャラクター数 & 総Key数計算
+      const totalKeys = filtered.reduce((sum, c) => sum + (Number(c.keyCount) || 0), 0);
+      document.getElementById('resultCount').textContent = `${filtered.length} character${filtered.length === 1 ? '' : 's'}`;
+      document.getElementById('totalKeysCount').textContent = `${totalKeys.toLocaleString()} key${totalKeys === 1 ? '' : 's'}`;
+
+      const hasSamples = characters.some(c => c.isSample);
+      const sampleNotice = document.getElementById('sampleNotice');
+      if (hasSamples) {
+        sampleNotice.classList.remove('hidden');
+        sampleNotice.classList.add('flex');
+      } else {
+        sampleNotice.classList.add('hidden');
+        sampleNotice.classList.remove('flex');
+      }
+
+      renderGallery(filtered);
+    }
+
+    function resetAllFilters() {
+      document.getElementById('searchInput').value = '';
+      document.getElementById('keyFilter').value = 'all';
+      if (filterFavoritesOnly) {
+        toggleFavoriteFilter();
+      } else {
+        applyFilters();
+      }
+    }
+
+    // カードHTML生成ヘルパー（Favorites縦長・All正方形共通）
+    function createCharacterCardHtml(char, aspectModifier) {
+      const fallbackImg = `https://placehold.co/600x800/27272a/a1a1aa?text=${encodeURIComponent(char.nameRomaji || 'No+Image')}`;
+      const imgSrc = char.image || fallbackImg;
+
+      const memoHtml = char.memo
+        ? `<p class="mt-2 pt-1.5 border-t border-white/15 text-[11px] text-mono-200 leading-relaxed max-h-16 overflow-y-auto thin-scroll whitespace-pre-wrap">${escapeHtml(char.memo)}</p>`
+        : '';
+
+      const favBadgeHtml = char.isFavorite
+        ? `<span class="inline-flex items-center justify-center w-6 h-6 rounded-md bg-white/15 text-white" title="Favorite">
+            <svg class="w-3.5 h-3.5 fill-white" viewBox="0 0 24 24">
+              <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
+            </svg>
+          </span>`
+        : '';
+
+      return `
+        <article
+          class="char-card ${aspectModifier} rounded-xl shadow-xs border border-mono-200/70 select-none group"
+          onclick="toggleCardMobile(this)"
+        >
+          <!-- キャラクター画像 -->
+          <img
+            src="${escapeHtml(imgSrc)}"
+            alt="${escapeHtml(char.nameRomaji)}"
+            loading="lazy"
+            onerror="this.onerror=null; this.src='${fallbackImg}';"
+            class="w-full h-full object-cover"
+          />
+
+          <!-- 常時表示: 右上隅のKey数バッジ（数字のみシンプルに） -->
+          <div class="absolute top-2 right-2 sm:top-2.5 sm:right-2.5 z-10 px-2 py-0.5 rounded-md bg-mono-950/75 backdrop-blur-xs text-white font-mono text-xs sm:text-sm font-medium tracking-tight shadow-xs pointer-events-none">
+            ${Number(char.keyCount) || 0}
+          </div>
+
+          <!-- ホバー時（スマホはタップ時）表示: 登録詳細オーバーレイ（日付・タグは非表示） -->
+          <div class="char-overlay absolute inset-0 z-20 bg-mono-950/84 backdrop-blur-[2px] p-3 sm:p-4 flex flex-col justify-between text-white">
+            <!-- 上部: 編集ボタン & お気に入り表示 -->
+            <div class="flex items-center gap-1.5">
+              <button
+                type="button"
+                onclick="event.stopPropagation(); openEditorModal('${escapeJsStr(char.id)}')"
+                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/15 hover:bg-white text-white hover:text-mono-950 text-[11px] font-medium transition-colors"
+              >
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+                </svg>
+                <span>Edit</span>
+              </button>
+              ${favBadgeHtml}
+            </div>
+
+            <!-- 下部: キャラ名（ローマ字メイン・日本語小さく）・作品名・メモ -->
+            <div class="mt-auto">
+              ${char.series ? `<p class="text-[10px] sm:text-[11px] text-mono-300 tracking-wide truncate mb-0.5">${escapeHtml(char.series)}</p>` : ''}
+              <h3 class="text-sm sm:text-base font-semibold leading-snug text-white tracking-tight">${escapeHtml(char.nameRomaji)}</h3>
+              ${char.nameJp ? `<p class="text-[11px] text-mono-300 leading-tight mt-0.5">${escapeHtml(char.nameJp)}</p>` : ''}
+              ${memoHtml}
+            </div>
+          </div>
+        </article>
+      `;
+    }
+
+    // ギャラリー描画（【Favorites】セクション + 全キャラ一覧）
+    function renderGallery(list) {
+      const favSection = document.getElementById('favoritesSection');
+      const favGrid = document.getElementById('favoritesGrid');
+      const favBadge = document.getElementById('favoritesCountBadge');
+      const allHeader = document.getElementById('allCharactersHeader');
+      const allSection = document.getElementById('allCharactersSection');
+      const grid = document.getElementById('galleryGrid');
+      const emptyState = document.getElementById('emptyState');
+
+      if (list.length === 0) {
+        favSection.classList.add('hidden');
+        allSection.classList.add('hidden');
+        grid.innerHTML = '';
+        favGrid.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      allSection.classList.remove('hidden');
+
+      const favoriteList = list.filter(c => c.isFavorite);
+
+      // Favoritesセクションの描画（お気に入り絞り込み中でない、かつお気に入りキャラが存在する時）
+      if (favoriteList.length > 0 && !filterFavoritesOnly) {
+        favSection.classList.remove('hidden');
+        favBadge.textContent = `${favoriteList.length}`;
+        favGrid.innerHTML = favoriteList.map(c => createCharacterCardHtml(c, 'char-card--portrait')).join('');
+
+        allHeader.classList.remove('hidden');
+        allHeader.classList.add('flex');
+      } else {
+        favSection.classList.add('hidden');
+        favGrid.innerHTML = '';
+
+        allHeader.classList.add('hidden');
+        allHeader.classList.remove('flex');
+      }
+
+      // 全キャラ一覧（正方形カード）
+      grid.innerHTML = list.map(c => createCharacterCardHtml(c, 'char-card--square')).join('');
+    }
+
+    // スマホ・タブレットでのタップによるオーバーレイ開閉
+    function toggleCardMobile(cardEl) {
+      const wasActive = cardEl.classList.contains('is-active');
+      document.querySelectorAll('.char-card.is-active').forEach(el => el.classList.remove('is-active'));
+      if (!wasActive) {
+        cardEl.classList.add('is-active');
+      }
+    }
+
+    // カード内のタグクリックで即座に検索バーへ反映して絞り込み
+    function filterByTagClick(tag) {
+      const searchInput = document.getElementById('searchInput');
+      searchInput.value = (searchInput.value.trim() === tag) ? '' : tag;
+      applyFilters();
+    }
+
+    // ==================== MODAL: ADD & EDIT ====================
+    function openEditorModal(id = null) {
+      const modal = document.getElementById('editorModal');
+      const form = document.getElementById('charForm');
+      form.reset();
+
+      cancelDeleteCharacter();
+      currentFormTags = [];
+      currentFormKeyDates = [];
+      currentFormFavorite = false;
+      currentImageData = '';
+
+      const deleteBtn = document.getElementById('deleteCharBtn');
+
+      if (id) {
+        const target = characters.find(c => c.id === id);
+        if (!target) return;
+
+        document.getElementById('modalTitle').textContent = 'キャラクター編集';
+        document.getElementById('charId').value = target.id;
+        document.getElementById('nameRomaji').value = target.nameRomaji || '';
+        document.getElementById('nameJp').value = target.nameJp || '';
+        const kCount = target.keyCount ?? 1;
+        document.getElementById('keyCount').value = kCount;
+        document.getElementById('seriesName').value = target.series || '';
+        document.getElementById('memoInput').value = target.memo || '';
+        document.getElementById('previewKeyBadge').textContent = kCount;
+
+        currentFormFavorite = Boolean(target.isFavorite);
+        currentFormTags = Array.isArray(target.tags) ? [...target.tags] : [];
+        currentFormKeyDates = Array.isArray(target.keyDates) ? [...target.keyDates] : [];
+        syncKeyDatesLength(kCount);
+        currentImageData = target.image || '';
+
+        // データURLか外部URLかで初期タブを切り替え
+        if (currentImageData.startsWith('data:image')) {
+          switchImageMode('file');
+          setPreviewImage(currentImageData);
+        } else {
+          switchImageMode('url');
+          document.getElementById('imageUrlInput').value = currentImageData;
+          setPreviewImage(currentImageData);
+        }
+
+        deleteBtn.classList.remove('hidden');
+      } else {
+        document.getElementById('modalTitle').textContent = 'キャラクター登録';
+        document.getElementById('charId').value = '';
+        document.getElementById('keyCount').value = 1;
+        document.getElementById('previewKeyBadge').textContent = '1';
+        currentFormFavorite = false;
+        currentFormKeyDates = [''];
+        switchImageMode('url');
+        setPreviewImage('');
+        deleteBtn.classList.add('hidden');
+      }
+
+      updateModalFavoriteUI();
+      renderKeyDatesInputs();
+      renderFormTags();
+      renderExistingTagSuggestions();
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeEditorModal() {
+      const modal = document.getElementById('editorModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    // 画像入力モード切替（URL / ローカルファイル）
+    function switchImageMode(mode) {
+      currentImageMode = mode;
+      const tabUrlBtn = document.getElementById('tabUrlBtn');
+      const tabFileBtn = document.getElementById('tabFileBtn');
+      const urlBox = document.getElementById('imageUrlBox');
+      const fileBox = document.getElementById('imageFileBox');
+
+      if (mode === 'url') {
+        tabUrlBtn.classList.add('bg-white', 'text-mono-900', 'shadow-2xs');
+        tabUrlBtn.classList.remove('text-mono-500');
+        tabFileBtn.classList.remove('bg-white', 'text-mono-900', 'shadow-2xs');
+        tabFileBtn.classList.add('text-mono-500');
+        urlBox.classList.remove('hidden');
+        fileBox.classList.add('hidden');
+      } else {
+        tabFileBtn.classList.add('bg-white', 'text-mono-900', 'shadow-2xs');
+        tabFileBtn.classList.remove('text-mono-500');
+        tabUrlBtn.classList.remove('bg-white', 'text-mono-900', 'shadow-2xs');
+        tabUrlBtn.classList.add('text-mono-500');
+        fileBox.classList.remove('hidden');
+        urlBox.classList.add('hidden');
+      }
+    }
+
+    function updateImagePreviewFromUrl(url) {
+      currentImageData = url.trim();
+      setPreviewImage(currentImageData);
+    }
+
+    function setPreviewImage(src) {
+      const img = document.getElementById('imagePreview');
+      const placeholder = document.getElementById('previewPlaceholder');
+      if (!img || !placeholder) return;
+
+      if (src) {
+        img.src = src;
+        img.classList.remove('hidden');
+        placeholder.classList.add('hidden');
+      } else {
+        img.removeAttribute('src');
+        img.classList.add('hidden');
+        placeholder.classList.remove('hidden');
+        placeholder.innerHTML = `<p class="text-xs text-mono-400">プレビュー</p>`;
+      }
+    }
+
+    function handlePreviewError() {
+      const img = document.getElementById('imagePreview');
+      const placeholder = document.getElementById('previewPlaceholder');
+      if (!img || !placeholder) return;
+
+      // srcが空のときに発生するonerrorは無視
+      if (!img.getAttribute('src')) return;
+
+      img.classList.add('hidden');
+      placeholder.classList.remove('hidden');
+      placeholder.innerHTML = `<p class="text-xs text-mono-500">画像を読み込めませんでした</p>`;
+    }
+
+    // ファイル選択時の自動リサイズ＆軽量圧縮（LocalStorage圧迫防止）
+    function handleFileSelect(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const tempImg = new Image();
+        tempImg.onload = function() {
+          const canvas = document.createElement('canvas');
+          const maxDim = 800;
+          let width = tempImg.width;
+          let height = tempImg.height;
+
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(tempImg, 0, 0, width, height);
+
+          currentImageData = canvas.toDataURL('image/jpeg', 0.85);
+          setPreviewImage(currentImageData);
+        };
+        tempImg.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // タグ追加・削除・描画処理
+    function addTagFromInput() {
+      const input = document.getElementById('tagInput');
+      let raw = input.value.trim();
+      if (!raw) return;
+
+      const parts = raw.split(/[\s,、]+/).filter(Boolean);
+      parts.forEach(p => {
+        const formatted = p.startsWith('#') ? p : `#${p}`;
+        if (!currentFormTags.includes(formatted)) {
+          currentFormTags.push(formatted);
+        }
+      });
+
+      input.value = '';
+      renderFormTags();
+    }
+
+    function removeFormTag(tag) {
+      currentFormTags = currentFormTags.filter(t => t !== tag);
+      renderFormTags();
+    }
+
+    function toggleFormTag(tag) {
+      if (currentFormTags.includes(tag)) {
+        removeFormTag(tag);
+      } else {
+        currentFormTags.push(tag);
+        renderFormTags();
+      }
+    }
+
+    function renderFormTags() {
+      const container = document.getElementById('selectedTagsContainer');
+      if (!container) return;
+
+      container.innerHTML = currentFormTags.map(tag => `
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-mono-900 text-white font-mono text-[11px]">
+          <span>${escapeHtml(tag)}</span>
+          <button
+            type="button"
+            onclick="removeFormTag('${escapeJsStr(tag)}')"
+            class="text-mono-400 hover:text-white leading-none ml-0.5"
+          >&times;</button>
+        </span>
+      `).join('');
+    }
+
+    // お気に入りトグル（モーダル内）
+    function toggleFormFavorite() {
+      currentFormFavorite = !currentFormFavorite;
+      updateModalFavoriteUI();
+    }
+
+    function updateModalFavoriteUI() {
+      const btn = document.getElementById('modalFavToggleBtn');
+      const icon = document.getElementById('modalFavIcon');
+      const label = document.getElementById('modalFavLabel');
+
+      if (currentFormFavorite) {
+        btn.classList.add('bg-mono-900', 'border-mono-900');
+        btn.classList.remove('border-mono-200');
+        icon.classList.add('fill-white', 'text-white');
+        icon.classList.remove('text-mono-400');
+        label.classList.add('text-white');
+        label.classList.remove('text-mono-600');
+      } else {
+        btn.classList.remove('bg-mono-900', 'border-mono-900');
+        btn.classList.add('border-mono-200');
+        icon.classList.remove('fill-white', 'text-white');
+        icon.classList.add('text-mono-400');
+        label.classList.remove('text-white');
+        label.classList.add('text-mono-600');
+      }
+    }
+
+    // Key数変更時にプレビューバッジと日付入力欄の数を同期
+    function handleKeyCountChange(val) {
+      const num = Math.max(0, parseInt(val, 10) || 0);
+      document.getElementById('previewKeyBadge').textContent = num;
+      syncKeyDatesLength(num);
+      renderKeyDatesInputs();
+    }
+
+    function syncKeyDatesLength(targetCount) {
+      const count = Math.min(Math.max(0, Number(targetCount) || 0), 50);
+      while (currentFormKeyDates.length < count) {
+        currentFormKeyDates.push('');
+      }
+      // 末尾が空欄の場合のみ余分な空枠を自動で詰める（入力済みの日付は消さない）
+      while (currentFormKeyDates.length > count && currentFormKeyDates[currentFormKeyDates.length - 1] === '') {
+        currentFormKeyDates.pop();
+      }
+    }
+
+    function addKeyDateRow() {
+      currentFormKeyDates.push('');
+      renderKeyDatesInputs();
+    }
+
+    function updateKeyDateAt(index, value) {
+      currentFormKeyDates[index] = value;
+    }
+
+    function removeKeyDateRow(index) {
+      currentFormKeyDates.splice(index, 1);
+      renderKeyDatesInputs();
+    }
+
+    function renderKeyDatesInputs() {
+      const container = document.getElementById('keyDatesContainer');
+      if (currentFormKeyDates.length === 0) {
+        container.innerHTML = `<p class="text-[11px] text-mono-400 py-1">日付記録なし（「+ 日付枠を追加」で登録できます）</p>`;
+        return;
+      }
+
+      container.innerHTML = currentFormKeyDates.map((dateVal, idx) => `
+        <div class="flex items-center gap-2">
+          <span class="w-16 shrink-0 font-mono text-[11px] text-mono-500">${idx + 1}つめ:</span>
+          <input
+            type="date"
+            value="${escapeHtml(dateVal)}"
+            onchange="updateKeyDateAt(${idx}, this.value)"
+            class="flex-1 px-2.5 py-1 text-xs font-mono bg-mono-50 border border-mono-200 rounded-md text-mono-900 focus:outline-none focus:bg-white focus:border-mono-500"
+          />
+          <button
+            type="button"
+            onclick="removeKeyDateRow(${idx})"
+            class="p-1 text-mono-400 hover:text-mono-800 text-xs"
+            title="この行を削除"
+          >&times;</button>
+        </div>
+      `).join('');
+    }
+
+    function renderExistingTagSuggestions() {
+      const wrapper = document.getElementById('existingTagsQuickPick');
+      const allTags = new Set();
+      characters.forEach(c => (c.tags || []).forEach(t => allTags.add(t)));
+
+      if (allTags.size === 0) {
+        wrapper.classList.add('hidden');
+        wrapper.classList.remove('flex');
+        return;
+      }
+
+      wrapper.classList.remove('hidden');
+      wrapper.classList.add('flex');
+
+      const sorted = Array.from(allTags).sort();
+      wrapper.innerHTML = `<span class="text-[10px] text-mono-400 mr-1">候補:</span>` +
+        sorted.map(tag => `
+          <button
+            type="button"
+            onclick="toggleFormTag('${escapeJsStr(tag)}')"
+            class="px-1.5 py-0.5 rounded bg-mono-100 hover:bg-mono-200 text-mono-600 font-mono text-[10px] transition-colors"
+          >${escapeHtml(tag)}</button>
+        `).join('');
+    }
+
+    // 保存処理
+    function handleSaveCharacter(event) {
+      event.preventDefault();
+
+      // タグ入力欄に未確定の文字があれば自動追加
+      if (document.getElementById('tagInput').value.trim()) {
+        addTagFromInput();
+      }
+
+      const id = document.getElementById('charId').value;
+      const nameRomaji = document.getElementById('nameRomaji').value.trim();
+      const nameJp = document.getElementById('nameJp').value.trim();
+      const keyCount = Math.max(0, parseInt(document.getElementById('keyCount').value, 10) || 0);
+      const series = document.getElementById('seriesName').value.trim();
+      const memo = document.getElementById('memoInput').value.trim();
+      const cleanedKeyDates = [...currentFormKeyDates];
+
+      if (!nameRomaji) {
+        showToast('ローマ字表記の名前を入力してください');
+        return;
+      }
+
+      const imageToSave = currentImageData || `https://placehold.co/600x800/27272a/f4f4f5?text=${encodeURIComponent(nameRomaji)}`;
+
+      if (id) {
+        const idx = characters.findIndex(c => c.id === id);
+        if (idx !== -1) {
+          characters[idx] = {
+            ...characters[idx],
+            nameRomaji,
+            nameJp,
+            keyCount,
+            keyDates: cleanedKeyDates,
+            isFavorite: currentFormFavorite,
+            series,
+            tags: [...currentFormTags],
+            memo,
+            image: imageToSave,
+            isSample: false
+          };
+        }
+        showToast('更新しました');
+      } else {
+        const newChar = {
+          id: 'char_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+          nameRomaji,
+          nameJp,
+          keyCount,
+          keyDates: cleanedKeyDates,
+          isFavorite: currentFormFavorite,
+          series,
+          tags: [...currentFormTags],
+          memo,
+          image: imageToSave,
+          isSample: false,
+          createdAt: Date.now()
+        };
+        characters.unshift(newChar);
+        showToast('登録しました');
+      }
+
+      saveCharacters();
+      populateFilterOptions();
+      applyFilters();
+      closeEditorModal();
+    }
+
+    // 削除確認フロー
+    function requestDeleteCharacter() {
+      document.getElementById('deleteCharBtn').classList.add('hidden');
+      const box = document.getElementById('deleteConfirmBox');
+      box.classList.remove('hidden');
+      box.classList.add('flex');
+    }
+
+    function cancelDeleteCharacter() {
+      const box = document.getElementById('deleteConfirmBox');
+      box.classList.add('hidden');
+      box.classList.remove('flex');
+      if (document.getElementById('charId').value) {
+        document.getElementById('deleteCharBtn').classList.remove('hidden');
+      }
+    }
+
+    function confirmDeleteCharacter() {
+      const id = document.getElementById('charId').value;
+      if (!id) return;
+      characters = characters.filter(c => c.id !== id);
+      saveCharacters();
+      populateFilterOptions();
+      applyFilters();
+      closeEditorModal();
+      showToast('削除しました');
+    }
+
+    // ==================== BACKUP (EXPORT / IMPORT) ====================
+    function openBackupModal() {
+      const modal = document.getElementById('backupModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeBackupModal() {
+      const modal = document.getElementById('backupModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function exportDataJson() {
+      const dataStr = JSON.stringify(characters, null, 2);
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const dateStr = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `my_key_collection_${dateStr}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('JSONファイルを書き出しました');
+    }
+
+    function importDataJson(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (!Array.isArray(parsed)) {
+            throw new Error('Invalid format');
+          }
+          characters = parsed;
+          saveCharacters();
+          populateFilterOptions();
+          applyFilters();
+          closeBackupModal();
+          showToast(`${parsed.length}件のデータを復元しました`);
+        } catch (err) {
+          showToast('ファイルの読み込みに失敗しました');
+        }
+        event.target.value = '';
+      };
+      reader.readAsText(file);
+    }
+
+    // エスケープ用ユーティリティ
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function escapeJsStr(str) {
+      if (str === null || str === undefined) return '';
+      return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    }
+  </script>
+</body>
+</html>
