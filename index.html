@@ -91,13 +91,18 @@
     }
 
     .char-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center center;
       transform-origin: center center;
+      transform: translate(var(--img-tx, 0px), var(--img-ty, 0px)) scale(var(--img-scale, 1));
       transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), filter 0.4s ease;
     }
 
     .char-card:hover img,
     .char-card.is-active img {
-      transform: translate(var(--img-tx, 0%), var(--img-ty, 0%)) scale(calc(var(--img-scale, 1) * 1.04));
+      transform: translate(var(--img-tx, 0px), var(--img-ty, 0px)) scale(calc(var(--img-scale, 1) * 1.04));
     }
 
     .char-overlay {
@@ -428,8 +433,8 @@
                 id="imagePreview"
                 alt="Preview"
                 draggable="false"
-                style="object-position: 50% 0%; transform: translate(0%, 0%) scale(1); transform-origin: center center;"
-                class="hidden w-full h-full object-cover cursor-grab active:cursor-grabbing"
+                style="transform: translate(0%, 0%) scale(1); transform-origin: center center;"
+                class="hidden w-full h-full object-cover object-center cursor-grab active:cursor-grabbing"
                 onerror="handlePreviewError()"
               />
               <!-- 正方形表示エリアの目安ガイド枠（All Charactersでの見え方を確認可能） -->
@@ -830,6 +835,25 @@
       applyFilters();
     });
 
+    // 画面リサイズ時に各カードのピクセル換算オフセットを再同期
+    window.addEventListener('resize', () => {
+      syncCardCropPixels();
+      applyCropStylesToPreview();
+    });
+
+    // コンテナ実寸幅をもとに、保存された比率オフセット(%)を正確なpxへ変換してカードに反映
+    function syncCardCropPixels() {
+      document.querySelectorAll('.char-card[data-crop-rx]').forEach(cardEl => {
+        const rx = parseFloat(cardEl.getAttribute('data-crop-rx')) || 0;
+        const ry = parseFloat(cardEl.getAttribute('data-crop-ry')) || 0;
+        const width = cardEl.clientWidth || 200;
+        const txPx = (rx / 100) * width;
+        const tyPx = (ry / 100) * width;
+        cardEl.style.setProperty('--img-tx', `${txPx.toFixed(1)}px`);
+        cardEl.style.setProperty('--img-ty', `${tyPx.toFixed(1)}px`);
+      });
+    }
+
     // LocalStorageから読み込み（既存データとの後方互換確保）
     function loadCharacters() {
       try {
@@ -1223,7 +1247,9 @@
       return `
         <article
           data-char-id="${escapeHtml(char.id)}"
-          style="background-color: ${escapeHtml(bgHex)}; --img-tx: ${offsetX}%; --img-ty: ${offsetY}%; --img-scale: ${zoom};"
+          data-crop-rx="${offsetX}"
+          data-crop-ry="${offsetY}"
+          style="background-color: ${escapeHtml(bgHex)}; --img-tx: 0px; --img-ty: 0px; --img-scale: ${zoom};"
           class="char-card ${aspectModifier} shadow-xs border border-mono-200/70 select-none group"
           onclick="toggleCardMobile(this)"
         >
@@ -1232,9 +1258,7 @@
             src="${escapeHtml(imgSrc)}"
             alt="${escapeHtml(char.nameRomaji)}"
             loading="lazy"
-            style="object-position: 50% 0%; transform: translate(${offsetX}%, ${offsetY}%) scale(${zoom});"
             onerror="this.onerror=null; this.src='${fallbackImg}';"
-            class="w-full h-full object-cover"
           />
 
           <!-- 常時表示: 右上隅のKey数（囲い背景なし・画像輝度に合わせて色自動変化） -->
@@ -1321,6 +1345,9 @@
 
       // 全キャラ一覧（正方形カード）
       grid.innerHTML = list.map(c => createCharacterCardHtml(c, 'char-card--square')).join('');
+
+      // 各カードの実寸幅に合わせてピクセルオフセットを同期
+      syncCardCropPixels();
 
       // 各カードの画像輝度を解析し、右上Key数とホバーテキスト色を最適化
       const charMap = new Map(list.map(c => [c.id, c]));
@@ -1515,11 +1542,15 @@
     // プレビュー画像の位置・ズームスタイルと数値ラベルを更新
     function applyCropStylesToPreview() {
       const img = document.getElementById('imagePreview');
+      const container = document.getElementById('previewContainer');
       const slider = document.getElementById('imageZoomSlider');
       const label = document.getElementById('cropCoordLabel');
       if (img) {
-        img.style.objectPosition = '50% 0%';
-        img.style.transform = `translate(${currentCropOffsetX}%, ${currentCropOffsetY}%) scale(${currentCropZoom})`;
+        const containerW = container ? (container.clientWidth || 220) : 220;
+        const txPx = (currentCropOffsetX / 100) * containerW;
+        const tyPx = (currentCropOffsetY / 100) * containerW;
+        img.style.objectPosition = 'center center';
+        img.style.transform = `translate(${txPx.toFixed(1)}px, ${tyPx.toFixed(1)}px) scale(${currentCropZoom})`;
       }
       if (slider) {
         slider.value = currentCropZoom;
