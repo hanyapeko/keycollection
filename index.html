@@ -119,7 +119,7 @@
       background: transparent;
     }
     .thin-scroll::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.35);
+      background: rgba(161, 161, 170, 0.45);
       border-radius: 9999px;
     }
   </style>
@@ -392,22 +392,22 @@
               </div>
             </div>
 
-            <!-- URL入力フィールド -->
+            <!-- URL入力欄 -->
             <div id="imageUrlBox">
               <input
                 id="imageUrlInput"
                 type="url"
-                placeholder="https://..."
+                placeholder="https://example.com/character.jpg"
                 oninput="updateImagePreviewFromUrl(this.value)"
                 class="w-full px-3 py-2 text-xs bg-mono-50 border border-mono-200 rounded-lg text-mono-900 placeholder-mono-400 focus:outline-none focus:bg-white focus:border-mono-500"
               />
             </div>
 
-            <!-- ファイル選択フィールド -->
+            <!-- ファイルアップロード欄 -->
             <div id="imageFileBox" class="hidden">
-              <label class="flex flex-col items-center justify-center w-full py-3 px-3 border border-dashed border-mono-300 hover:border-mono-600 rounded-lg bg-mono-50 hover:bg-mono-100/70 cursor-pointer transition-colors">
+              <label class="flex flex-col items-center justify-center w-full py-2.5 px-3 border border-dashed border-mono-300 rounded-lg bg-mono-50 hover:bg-mono-100/70 cursor-pointer transition-colors">
                 <span class="text-xs text-mono-600 font-medium">画像ファイルを選択</span>
-                <span class="text-[10px] text-mono-400 mt-0.5">自動で軽量リサイズ保存されます</span>
+                <span class="text-[10px] text-mono-400 mt-0.5">JPG / PNG / WebP（自動リサイズ保存）</span>
                 <input
                   id="imageFileInput"
                   type="file"
@@ -418,11 +418,14 @@
               </label>
             </div>
 
-            <!-- ライブプレビュー枠 -->
-            <div class="relative w-full aspect-[3/4] rounded-xl overflow-hidden bg-mono-100 border border-mono-200 flex items-center justify-center">
+            <!-- ライブプレビュー枠（四隅シャープ・背景色自由変更対応） -->
+            <div
+              id="previewContainer"
+              style="background-color: #fafafa;"
+              class="relative w-full aspect-[3/4] overflow-hidden border border-mono-200 flex items-center justify-center transition-colors"
+            >
               <img
                 id="imagePreview"
-                src=""
                 alt="Preview"
                 class="hidden w-full h-full object-cover"
                 onerror="handlePreviewError()"
@@ -430,13 +433,40 @@
               <div id="previewPlaceholder" class="text-center p-4">
                 <p class="text-xs text-mono-400">プレビュー</p>
               </div>
-              <!-- 右上Key数プレビューバッジ -->
+              <!-- 右上Key数プレビュー（囲い背景なし・画像輝度に合わせて色自動変化） -->
               <span
                 id="previewKeyBadge"
-                class="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-md bg-black/75 backdrop-blur-xs text-white font-mono text-xs font-medium"
+                style="color: #ffffff; text-shadow: 0 1px 4px rgba(0,0,0,0.65);"
+                class="absolute top-2.5 right-3 font-mono text-sm font-semibold pointer-events-none transition-colors"
               >
                 1
               </span>
+            </div>
+
+            <!-- 画像背景色の自由指定（透過PNG対応） -->
+            <div class="flex items-center justify-between px-3 py-2 rounded-lg bg-mono-50 border border-mono-200">
+              <label for="imageBgColorInput" class="text-xs font-medium text-mono-700">
+                画像背景色 <span class="text-[10px] text-mono-400 font-normal">（透過PNG用）</span>
+              </label>
+              <div class="flex items-center gap-2">
+                <span id="imageBgHexLabel" class="font-mono text-[11px] text-mono-500 uppercase">#fafafa</span>
+                <input
+                  id="imageBgColorInput"
+                  type="color"
+                  value="#fafafa"
+                  oninput="handleBgColorChange(this.value)"
+                  class="w-6 h-6 p-0 border border-mono-300 rounded cursor-pointer bg-transparent"
+                  title="背景色を自由に選択"
+                />
+                <button
+                  type="button"
+                  onclick="handleBgColorChange('#fafafa')"
+                  class="text-[10px] text-mono-400 hover:text-mono-800 underline underline-offset-2"
+                  title="デフォルト背景色に戻す"
+                >
+                  戻す
+                </button>
+              </div>
             </div>
           </div>
 
@@ -739,7 +769,10 @@
     let currentFormFavorite = false;
     let filterFavoritesOnly = false;
     let currentImageData = '';
+    let currentImageBgColor = '#fafafa';
     let currentImageMode = 'url';
+    // 画像ごとの輝度解析キャッシュ（URL/DataURL + 背景色 -> { overallIsLight, topRightIsLight }）
+    const luminanceCache = new Map();
 
     // 初期化処理
     window.addEventListener('DOMContentLoaded', () => {
@@ -760,7 +793,8 @@
           characters = parsed.map(c => ({
             ...c,
             isFavorite: Boolean(c.isFavorite),
-            keyDates: Array.isArray(c.keyDates) ? c.keyDates : []
+            keyDates: Array.isArray(c.keyDates) ? c.keyDates : [],
+            imageBgColor: c.imageBgColor || '#fafafa'
           }));
         }
       } catch (e) {
@@ -776,6 +810,183 @@
       } catch (e) {
         showToast('保存容量の上限に達しました。画像を減らすかバックアップしてください。');
       }
+    }
+
+    // 16進カラーコード(#rrggbb)をRGB配列に変換
+    function hexToRgb(hex) {
+      const clean = (hex || '#fafafa').replace('#', '');
+      const full = clean.length === 3
+        ? clean.split('').map(ch => ch + ch).join('')
+        : clean.padEnd(6, 'f');
+      const num = parseInt(full, 16);
+      return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
+    }
+
+    // RGBから相対輝度(0〜255)を算出
+    function getRgbLuminance(r, g, b) {
+      return 0.299 * r + 0.587 * g + 0.114 * b;
+    }
+
+    // 画像全体＆右上隅の明るさを解析してコールバックへ返す（透過PNGの場合は指定背景色と合成計算）
+    function analyzeImageBrightness(src, bgColorHex, callback) {
+      const bgHex = bgColorHex || '#fafafa';
+      const [bgR, bgG, bgB] = hexToRgb(bgHex);
+      const bgLum = getRgbLuminance(bgR, bgG, bgB);
+      const defaultResult = {
+        overallIsLight: bgLum > 145,
+        topRightIsLight: bgLum > 155
+      };
+
+      if (!src) {
+        callback(defaultResult);
+        return;
+      }
+
+      const cacheKey = `${src.slice(0, 120)}_${src.length}_${bgHex}`;
+      if (luminanceCache.has(cacheKey)) {
+        callback(luminanceCache.get(cacheKey));
+        return;
+      }
+
+      const img = new Image();
+      if (!src.startsWith('data:')) {
+        img.crossOrigin = 'Anonymous';
+      }
+
+      img.onload = function() {
+        try {
+          const sampleW = 64;
+          const sampleH = 64;
+          const canvas = document.createElement('canvas');
+          canvas.width = sampleW;
+          canvas.height = sampleH;
+          const ctx = canvas.getContext('2d');
+
+          // 先にユーザー指定の背景色を塗ってから画像を描画（透過PNG対応）
+          ctx.fillStyle = bgHex;
+          ctx.fillRect(0, 0, sampleW, sampleH);
+          ctx.drawImage(img, 0, 0, sampleW, sampleH);
+
+          const data = ctx.getImageData(0, 0, sampleW, sampleH).data;
+
+          let totalLum = 0;
+          let totalCount = 0;
+
+          let trLum = 0;
+          let trCount = 0;
+
+          // 右上エリア（右端30% × 上端25%）をピンポイントサンプリング
+          const trStartX = Math.floor(sampleW * 0.70);
+          const trEndY = Math.floor(sampleH * 0.25);
+
+          for (let y = 0; y < sampleH; y++) {
+            for (let x = 0; x < sampleW; x++) {
+              const idx = (y * sampleW + x) * 4;
+              const lum = getRgbLuminance(data[idx], data[idx + 1], data[idx + 2]);
+              totalLum += lum;
+              totalCount++;
+
+              if (x >= trStartX && y <= trEndY) {
+                trLum += lum;
+                trCount++;
+              }
+            }
+          }
+
+          const result = {
+            overallIsLight: (totalLum / totalCount) > 145,
+            topRightIsLight: (trLum / Math.max(1, trCount)) > 155
+          };
+
+          luminanceCache.set(cacheKey, result);
+          callback(result);
+        } catch (err) {
+          // CORS制限等でピクセル取得できない外部URLはデフォルト判定を使用
+          luminanceCache.set(cacheKey, defaultResult);
+          callback(defaultResult);
+        }
+      };
+
+      img.onerror = function() {
+        callback(defaultResult);
+      };
+
+      img.src = src;
+    }
+
+    // カード要素に解析結果（ホバー文字色＆右上Key数文字色）を適用
+    function applyAdaptiveContrastToCard(cardEl, src, bgHex) {
+      analyzeImageBrightness(src, bgHex, ({ overallIsLight, topRightIsLight }) => {
+        if (!cardEl || !cardEl.isConnected) return;
+
+        // 1. 右上隅Key数の文字色（背景ボックスなし）
+        const keyEl = cardEl.querySelector('[data-role="key-number"]');
+        if (keyEl) {
+          if (topRightIsLight) {
+            keyEl.style.color = '#18181b';
+            keyEl.style.textShadow = '0 1px 3px rgba(255, 255, 255, 0.85)';
+          } else {
+            keyEl.style.color = '#ffffff';
+            keyEl.style.textShadow = '0 1px 4px rgba(0, 0, 0, 0.75)';
+          }
+        }
+
+        // 2. ホバーオーバーレイの背景＆文字色
+        const overlayEl = cardEl.querySelector('[data-role="hover-overlay"]');
+        if (overlayEl) {
+          const editBtn = overlayEl.querySelector('[data-role="edit-btn"]');
+          const favBadge = overlayEl.querySelector('[data-role="fav-badge"]');
+          const subTexts = overlayEl.querySelectorAll('[data-role="sub-text"]');
+          const mainTitle = overlayEl.querySelector('[data-role="main-title"]');
+          const memoText = overlayEl.querySelector('[data-role="memo-text"]');
+
+          if (overallIsLight) {
+            // 明るい画像 → ライトすりガラス＋黒文字
+            overlayEl.style.backgroundColor = 'rgba(250, 250, 250, 0.86)';
+            overlayEl.style.color = '#18181b';
+            if (editBtn) {
+              editBtn.className = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-mono-900/10 hover:bg-mono-900 text-mono-900 hover:text-white text-[11px] font-medium transition-colors';
+            }
+            if (favBadge) {
+              favBadge.className = 'inline-flex items-center justify-center w-6 h-6 rounded-md bg-mono-900/10 text-mono-900';
+              const svg = favBadge.querySelector('svg');
+              if (svg) svg.setAttribute('class', 'w-3.5 h-3.5 fill-mono-900');
+            }
+            subTexts.forEach(el => {
+              el.style.color = '#52525b';
+            });
+            if (mainTitle) {
+              mainTitle.style.color = '#09090b';
+            }
+            if (memoText) {
+              memoText.style.color = '#27272a';
+              memoText.style.borderColor = 'rgba(24, 24, 27, 0.15)';
+            }
+          } else {
+            // 暗い画像 → ダークすりガラス＋白文字
+            overlayEl.style.backgroundColor = 'rgba(9, 9, 11, 0.84)';
+            overlayEl.style.color = '#ffffff';
+            if (editBtn) {
+              editBtn.className = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/15 hover:bg-white text-white hover:text-mono-950 text-[11px] font-medium transition-colors';
+            }
+            if (favBadge) {
+              favBadge.className = 'inline-flex items-center justify-center w-6 h-6 rounded-md bg-white/15 text-white';
+              const svg = favBadge.querySelector('svg');
+              if (svg) svg.setAttribute('class', 'w-3.5 h-3.5 fill-white');
+            }
+            subTexts.forEach(el => {
+              el.style.color = '#d4d4d8';
+            });
+            if (mainTitle) {
+              mainTitle.style.color = '#ffffff';
+            }
+            if (memoText) {
+              memoText.style.color = '#e4e4e7';
+              memoText.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+            }
+          }
+        }
+      });
     }
 
     // トーストメッセージ表示
@@ -924,9 +1135,11 @@
       renderGallery(filtered);
     }
 
+    // 絞り込み・検索条件の一括リセット
     function resetAllFilters() {
       document.getElementById('searchInput').value = '';
       document.getElementById('keyFilter').value = 'all';
+      document.getElementById('exactKeyInput').value = '1';
       if (filterFavoritesOnly) {
         toggleFavoriteFilter();
       } else {
@@ -934,17 +1147,18 @@
       }
     }
 
-    // カードHTML生成ヘルパー（Favorites縦長・All正方形共通）
+    // カードHTML生成ヘルパー（Favorites縦長・All正方形共通・四隅シャープ・透過背景色対応）
     function createCharacterCardHtml(char, aspectModifier) {
       const fallbackImg = `https://placehold.co/600x800/27272a/a1a1aa?text=${encodeURIComponent(char.nameRomaji || 'No+Image')}`;
       const imgSrc = char.image || fallbackImg;
+      const bgHex = char.imageBgColor || '#fafafa';
 
       const memoHtml = char.memo
-        ? `<p class="mt-2 pt-1.5 border-t border-white/15 text-[11px] text-mono-200 leading-relaxed max-h-16 overflow-y-auto thin-scroll whitespace-pre-wrap">${escapeHtml(char.memo)}</p>`
+        ? `<p data-role="memo-text" class="mt-2 pt-1.5 border-t border-white/15 text-[11px] text-mono-200 leading-relaxed max-h-16 overflow-y-auto thin-scroll whitespace-pre-wrap">${escapeHtml(char.memo)}</p>`
         : '';
 
       const favBadgeHtml = char.isFavorite
-        ? `<span class="inline-flex items-center justify-center w-6 h-6 rounded-md bg-white/15 text-white" title="Favorite">
+        ? `<span data-role="fav-badge" class="inline-flex items-center justify-center w-6 h-6 rounded-md bg-white/15 text-white" title="Favorite">
             <svg class="w-3.5 h-3.5 fill-white" viewBox="0 0 24 24">
               <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
             </svg>
@@ -953,7 +1167,9 @@
 
       return `
         <article
-          class="char-card ${aspectModifier} rounded-xl shadow-xs border border-mono-200/70 select-none group"
+          data-char-id="${escapeHtml(char.id)}"
+          style="background-color: ${escapeHtml(bgHex)};"
+          class="char-card ${aspectModifier} shadow-xs border border-mono-200/70 select-none group"
           onclick="toggleCardMobile(this)"
         >
           <!-- キャラクター画像 -->
@@ -965,17 +1181,25 @@
             class="w-full h-full object-cover"
           />
 
-          <!-- 常時表示: 右上隅のKey数バッジ（数字のみシンプルに） -->
-          <div class="absolute top-2 right-2 sm:top-2.5 sm:right-2.5 z-10 px-2 py-0.5 rounded-md bg-mono-950/75 backdrop-blur-xs text-white font-mono text-xs sm:text-sm font-medium tracking-tight shadow-xs pointer-events-none">
+          <!-- 常時表示: 右上隅のKey数（囲い背景なし・画像輝度に合わせて色自動変化） -->
+          <div
+            data-role="key-number"
+            style="color: #ffffff; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.75);"
+            class="absolute top-2 right-2.5 sm:top-2.5 sm:right-3 z-10 font-mono text-xs sm:text-sm font-semibold tracking-tight pointer-events-none transition-colors"
+          >
             ${Number(char.keyCount) || 0}
           </div>
 
-          <!-- ホバー時（スマホはタップ時）表示: 登録詳細オーバーレイ（日付・タグは非表示） -->
-          <div class="char-overlay absolute inset-0 z-20 bg-mono-950/84 backdrop-blur-[2px] p-3 sm:p-4 flex flex-col justify-between text-white">
+          <!-- ホバー時（スマホはタップ時）表示: 登録詳細オーバーレイ（画像の明るさに合わせて白/黒自動切替） -->
+          <div
+            data-role="hover-overlay"
+            class="char-overlay absolute inset-0 z-20 bg-mono-950/84 backdrop-blur-[2px] p-3 sm:p-4 flex flex-col justify-between text-white"
+          >
             <!-- 上部: 編集ボタン & お気に入り表示 -->
             <div class="flex items-center gap-1.5">
               <button
                 type="button"
+                data-role="edit-btn"
                 onclick="event.stopPropagation(); openEditorModal('${escapeJsStr(char.id)}')"
                 class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/15 hover:bg-white text-white hover:text-mono-950 text-[11px] font-medium transition-colors"
               >
@@ -989,9 +1213,9 @@
 
             <!-- 下部: キャラ名（ローマ字メイン・日本語小さく）・作品名・メモ -->
             <div class="mt-auto">
-              ${char.series ? `<p class="text-[10px] sm:text-[11px] text-mono-300 tracking-wide truncate mb-0.5">${escapeHtml(char.series)}</p>` : ''}
-              <h3 class="text-sm sm:text-base font-semibold leading-snug text-white tracking-tight">${escapeHtml(char.nameRomaji)}</h3>
-              ${char.nameJp ? `<p class="text-[11px] text-mono-300 leading-tight mt-0.5">${escapeHtml(char.nameJp)}</p>` : ''}
+              ${char.series ? `<p data-role="sub-text" class="text-[10px] sm:text-[11px] text-mono-300 tracking-wide truncate mb-0.5">${escapeHtml(char.series)}</p>` : ''}
+              <h3 data-role="main-title" class="text-sm sm:text-base font-semibold leading-snug text-white tracking-tight">${escapeHtml(char.nameRomaji)}</h3>
+              ${char.nameJp ? `<p data-role="sub-text" class="text-[11px] text-mono-300 leading-tight mt-0.5">${escapeHtml(char.nameJp)}</p>` : ''}
               ${memoHtml}
             </div>
           </div>
@@ -1041,6 +1265,15 @@
 
       // 全キャラ一覧（正方形カード）
       grid.innerHTML = list.map(c => createCharacterCardHtml(c, 'char-card--square')).join('');
+
+      // 各カードの画像輝度を解析し、右上Key数とホバーテキスト色を最適化
+      const charMap = new Map(list.map(c => [c.id, c]));
+      document.querySelectorAll('.char-card[data-char-id]').forEach(cardEl => {
+        const c = charMap.get(cardEl.getAttribute('data-char-id'));
+        if (c) {
+          applyAdaptiveContrastToCard(cardEl, c.image, c.imageBgColor || '#fafafa');
+        }
+      });
     }
 
     // スマホ・タブレットでのタップによるオーバーレイ開閉
@@ -1070,6 +1303,7 @@
       currentFormKeyDates = [];
       currentFormFavorite = false;
       currentImageData = '';
+      currentImageBgColor = '#fafafa';
 
       const deleteBtn = document.getElementById('deleteCharBtn');
 
@@ -1092,6 +1326,7 @@
         currentFormKeyDates = Array.isArray(target.keyDates) ? [...target.keyDates] : [];
         syncKeyDatesLength(kCount);
         currentImageData = target.image || '';
+        handleBgColorChange(target.imageBgColor || '#fafafa');
 
         // データURLか外部URLかで初期タブを切り替え
         if (currentImageData.startsWith('data:image')) {
@@ -1111,6 +1346,7 @@
         document.getElementById('previewKeyBadge').textContent = '1';
         currentFormFavorite = false;
         currentFormKeyDates = [''];
+        handleBgColorChange('#fafafa');
         switchImageMode('url');
         setPreviewImage('');
         deleteBtn.classList.add('hidden');
@@ -1161,6 +1397,35 @@
       setPreviewImage(currentImageData);
     }
 
+    // 画像背景色の変更＆プレビュー反映
+    function handleBgColorChange(hex) {
+      currentImageBgColor = hex || '#fafafa';
+      const colorInput = document.getElementById('imageBgColorInput');
+      const hexLabel = document.getElementById('imageBgHexLabel');
+      const previewContainer = document.getElementById('previewContainer');
+
+      if (colorInput) colorInput.value = currentImageBgColor;
+      if (hexLabel) hexLabel.textContent = currentImageBgColor;
+      if (previewContainer) previewContainer.style.backgroundColor = currentImageBgColor;
+
+      updatePreviewKeyBadgeColor();
+    }
+
+    // プレビュー枠の右上Key数文字色を背景＋画像の明るさに合わせて更新
+    function updatePreviewKeyBadgeColor() {
+      const badge = document.getElementById('previewKeyBadge');
+      if (!badge) return;
+      analyzeImageBrightness(currentImageData, currentImageBgColor, ({ topRightIsLight }) => {
+        if (topRightIsLight) {
+          badge.style.color = '#18181b';
+          badge.style.textShadow = '0 1px 3px rgba(255, 255, 255, 0.85)';
+        } else {
+          badge.style.color = '#ffffff';
+          badge.style.textShadow = '0 1px 4px rgba(0, 0, 0, 0.75)';
+        }
+      });
+    }
+
     function setPreviewImage(src) {
       const img = document.getElementById('imagePreview');
       const placeholder = document.getElementById('previewPlaceholder');
@@ -1176,6 +1441,7 @@
         placeholder.classList.remove('hidden');
         placeholder.innerHTML = `<p class="text-xs text-mono-400">プレビュー</p>`;
       }
+      updatePreviewKeyBadgeColor();
     }
 
     function handlePreviewError() {
@@ -1191,10 +1457,12 @@
       placeholder.innerHTML = `<p class="text-xs text-mono-500">画像を読み込めませんでした</p>`;
     }
 
-    // ファイル選択時の自動リサイズ＆軽量圧縮（LocalStorage圧迫防止）
+    // ファイル選択時の自動リサイズ＆軽量保存（透過PNGの透明部分も保持）
     function handleFileSelect(event) {
       const file = event.target.files[0];
       if (!file) return;
+
+      const isTransparentType = file.type === 'image/png' || file.type === 'image/webp' || file.type === 'image/gif';
 
       const reader = new FileReader();
       reader.onload = function(e) {
@@ -1218,9 +1486,13 @@
           canvas.width = width;
           canvas.height = height;
           const ctx = canvas.getContext('2d');
+          ctx.clearRect(0, 0, width, height);
           ctx.drawImage(tempImg, 0, 0, width, height);
 
-          currentImageData = canvas.toDataURL('image/jpeg', 0.85);
+          // PNG/WebP/GIFは透過情報を保つためPNG形式で保存、それ以外はJPEGで軽量圧縮
+          currentImageData = isTransparentType
+            ? canvas.toDataURL('image/png')
+            : canvas.toDataURL('image/jpeg', 0.85);
           setPreviewImage(currentImageData);
         };
         tempImg.src = e.target.result;
@@ -1426,6 +1698,7 @@
             tags: [...currentFormTags],
             memo,
             image: imageToSave,
+            imageBgColor: currentImageBgColor,
             isSample: false
           };
         }
@@ -1442,6 +1715,7 @@
           tags: [...currentFormTags],
           memo,
           image: imageToSave,
+          imageBgColor: currentImageBgColor,
           isSample: false,
           createdAt: Date.now()
         };
