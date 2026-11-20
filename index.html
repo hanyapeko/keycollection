@@ -91,13 +91,12 @@
     }
 
     .char-card img {
-      transform-origin: center center;
       transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), filter 0.4s ease;
     }
 
     .char-card:hover img,
     .char-card.is-active img {
-      transform: translate(var(--img-tx, 0%), var(--img-ty, 0%)) scale(calc(var(--img-scale, 1) * 1.04));
+      transform: scale(1.04);
     }
 
     .char-overlay {
@@ -378,7 +377,7 @@
                   type="button"
                   id="tabUrlBtn"
                   onclick="switchImageMode('url')"
-                  class="px-2.5 py-0.5 rounded-md font-medium bg-white text-mono-900 shadow-2xs transition-all"
+                  class="px-2.5 py-1 rounded-md font-medium bg-white text-mono-900 shadow-2xs transition-all"
                 >
                   URL
                 </button>
@@ -386,28 +385,29 @@
                   type="button"
                   id="tabFileBtn"
                   onclick="switchImageMode('file')"
-                  class="px-2.5 py-0.5 rounded-md font-medium text-mono-500 hover:text-mono-900 transition-all"
+                  class="px-2.5 py-1 rounded-md font-medium text-mono-500 hover:text-mono-900 transition-all"
                 >
                   ファイル
                 </button>
               </div>
             </div>
 
-            <!-- 画像URL入力 -->
+            <!-- URL入力欄 -->
             <div id="imageUrlBox">
               <input
                 id="imageUrlInput"
                 type="url"
-                placeholder="https://..."
+                placeholder="https://example.com/character.jpg"
                 oninput="updateImagePreviewFromUrl(this.value)"
-                class="w-full px-3 py-2 text-xs font-mono bg-mono-50 border border-mono-200 rounded-lg text-mono-900 placeholder-mono-400 focus:outline-none focus:bg-white focus:border-mono-500"
+                class="w-full px-3 py-2 text-xs bg-mono-50 border border-mono-200 rounded-lg text-mono-900 placeholder-mono-400 focus:outline-none focus:bg-white focus:border-mono-500"
               />
             </div>
 
-            <!-- ローカルファイル選択 -->
+            <!-- ファイルアップロード欄 -->
             <div id="imageFileBox" class="hidden">
-              <label class="flex items-center justify-center w-full px-3 py-2 text-xs text-mono-600 bg-mono-50 hover:bg-mono-100 border border-dashed border-mono-300 rounded-lg cursor-pointer transition-colors">
-                <span>画像を選択（自動リサイズ保存）</span>
+              <label class="flex flex-col items-center justify-center w-full py-2.5 px-3 border border-dashed border-mono-300 rounded-lg bg-mono-50 hover:bg-mono-100/70 cursor-pointer transition-colors">
+                <span class="text-xs text-mono-600 font-medium">画像ファイルを選択</span>
+                <span class="text-[10px] text-mono-400 mt-0.5">JPG / PNG / WebP（自動リサイズ保存）</span>
                 <input
                   id="imageFileInput"
                   type="file"
@@ -418,73 +418,29 @@
               </label>
             </div>
 
-            <!-- ライブプレビュー枠（四隅シャープ・背景色自由変更・ドラッグ位置調整＆ズーム対応） -->
+            <!-- ライブプレビュー枠（四隅シャープ・背景色自由変更対応） -->
             <div
               id="previewContainer"
               style="background-color: #fafafa;"
-              class="relative w-full aspect-[3/4] overflow-hidden border border-mono-200 flex items-center justify-center transition-colors select-none touch-none"
+              class="relative w-full aspect-[3/4] overflow-hidden border border-mono-200 flex items-center justify-center transition-colors"
             >
               <img
                 id="imagePreview"
                 alt="Preview"
-                draggable="false"
-                style="object-position: 50% 0%; transform: translate(0%, 0%) scale(1); transform-origin: center center;"
-                class="hidden w-full h-full object-cover cursor-grab active:cursor-grabbing"
+                class="hidden w-full h-full object-cover"
                 onerror="handlePreviewError()"
               />
-              <!-- 正方形表示エリアの目安ガイド枠（All Charactersでの見え方を確認可能） -->
-              <div
-                id="squareCropGuide"
-                class="hidden pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 aspect-square border-y border-dashed border-white/60 shadow-[0_0_0_9999px_rgba(0,0,0,0.18)]"
-              >
-                <span class="absolute bottom-1.5 left-2 font-mono text-[9px] tracking-wider uppercase text-white/80 drop-shadow">
-                  1:1 Square Area
-                </span>
-              </div>
-              <div id="previewPlaceholder" class="text-center p-4 pointer-events-none">
+              <div id="previewPlaceholder" class="text-center p-4">
                 <p class="text-xs text-mono-400">プレビュー</p>
               </div>
               <!-- 右上Key数プレビュー（囲い背景なし・画像輝度に合わせて色自動変化） -->
               <span
                 id="previewKeyBadge"
-                style="color: #ffffff; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.65);"
-                class="absolute top-2.5 right-3 z-10 font-mono text-sm font-semibold pointer-events-none transition-colors"
+                style="color: #ffffff; text-shadow: 0 1px 4px rgba(0,0,0,0.65);"
+                class="absolute top-2.5 right-3 font-mono text-sm font-semibold pointer-events-none transition-colors"
               >
                 1
               </span>
-            </div>
-
-            <!-- 画像の表示位置・ズーム調整パネル -->
-            <div class="px-3 py-2.5 rounded-lg bg-mono-50 border border-mono-200 space-y-2">
-              <div class="flex items-center justify-between">
-                <span class="text-[11px] font-medium text-mono-700">表示位置・ズーム</span>
-                <div class="flex items-center gap-2">
-                  <span id="cropCoordLabel" class="font-mono text-[10px] text-mono-400">0%, 0% / 1.0x</span>
-                  <button
-                    type="button"
-                    onclick="resetImageCrop()"
-                    class="text-[10px] text-mono-500 hover:text-mono-900 underline underline-offset-2"
-                  >
-                    リセット
-                  </button>
-                </div>
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="font-mono text-[10px] text-mono-400">Zoom</span>
-                <input
-                  id="imageZoomSlider"
-                  type="range"
-                  min="1"
-                  max="3"
-                  step="0.05"
-                  value="1"
-                  oninput="handleZoomSliderChange(this.value)"
-                  class="flex-1 h-1.5 bg-mono-200 rounded-lg appearance-none cursor-pointer accent-mono-900"
-                />
-              </div>
-              <p class="text-[10px] text-mono-400 leading-tight">
-                ※プレビュー画像をドラッグして上下左右に大きく動かせます
-              </p>
             </div>
 
             <!-- 画像背景色の自由指定（透過PNG対応） -->
@@ -815,10 +771,6 @@
     let currentImageData = '';
     let currentImageBgColor = '#fafafa';
     let currentImageMode = 'url';
-    // 画像の表示位置・拡大率（デフォルト: X移動0%, Y移動0%, 1.0倍）
-    let currentCropOffsetX = 0;
-    let currentCropOffsetY = 0;
-    let currentCropZoom = 1;
     // 画像ごとの輝度解析キャッシュ（URL/DataURL + 背景色 -> { overallIsLight, topRightIsLight }）
     const luminanceCache = new Map();
 
@@ -826,7 +778,6 @@
     window.addEventListener('DOMContentLoaded', () => {
       loadCharacters();
       populateFilterOptions();
-      initPreviewDragControls();
       applyFilters();
     });
 
@@ -843,10 +794,7 @@
             ...c,
             isFavorite: Boolean(c.isFavorite),
             keyDates: Array.isArray(c.keyDates) ? c.keyDates : [],
-            imageBgColor: c.imageBgColor || '#fafafa',
-            cropOffsetX: typeof c.cropOffsetX === 'number' ? c.cropOffsetX : 0,
-            cropOffsetY: typeof c.cropOffsetY === 'number' ? c.cropOffsetY : 0,
-            cropZoom: typeof c.cropZoom === 'number' ? c.cropZoom : 1
+            imageBgColor: c.imageBgColor || '#fafafa'
           }));
         }
       } catch (e) {
@@ -1199,14 +1147,11 @@
       }
     }
 
-    // カードHTML生成ヘルパー（Favorites縦長・All正方形共通・四隅シャープ・透過背景色・カスタムトリミング対応）
+    // カードHTML生成ヘルパー（Favorites縦長・All正方形共通・四隅シャープ・透過背景色対応）
     function createCharacterCardHtml(char, aspectModifier) {
       const fallbackImg = `https://placehold.co/600x800/27272a/a1a1aa?text=${encodeURIComponent(char.nameRomaji || 'No+Image')}`;
       const imgSrc = char.image || fallbackImg;
       const bgHex = char.imageBgColor || '#fafafa';
-      const offsetX = typeof char.cropOffsetX === 'number' ? char.cropOffsetX : 0;
-      const offsetY = typeof char.cropOffsetY === 'number' ? char.cropOffsetY : 0;
-      const zoom = typeof char.cropZoom === 'number' ? char.cropZoom : 1;
 
       const memoHtml = char.memo
         ? `<p data-role="memo-text" class="mt-2 pt-1.5 border-t border-white/15 text-[11px] text-mono-200 leading-relaxed max-h-16 overflow-y-auto thin-scroll whitespace-pre-wrap">${escapeHtml(char.memo)}</p>`
@@ -1223,7 +1168,7 @@
       return `
         <article
           data-char-id="${escapeHtml(char.id)}"
-          style="background-color: ${escapeHtml(bgHex)}; --img-tx: ${offsetX}%; --img-ty: ${offsetY}%; --img-scale: ${zoom};"
+          style="background-color: ${escapeHtml(bgHex)};"
           class="char-card ${aspectModifier} shadow-xs border border-mono-200/70 select-none group"
           onclick="toggleCardMobile(this)"
         >
@@ -1232,7 +1177,6 @@
             src="${escapeHtml(imgSrc)}"
             alt="${escapeHtml(char.nameRomaji)}"
             loading="lazy"
-            style="object-position: 50% 0%; transform: translate(${offsetX}%, ${offsetY}%) scale(${zoom});"
             onerror="this.onerror=null; this.src='${fallbackImg}';"
             class="w-full h-full object-cover"
           />
@@ -1360,9 +1304,6 @@
       currentFormFavorite = false;
       currentImageData = '';
       currentImageBgColor = '#fafafa';
-      currentCropOffsetX = 0;
-      currentCropOffsetY = 0;
-      currentCropZoom = 1;
 
       const deleteBtn = document.getElementById('deleteCharBtn');
 
@@ -1385,10 +1326,6 @@
         currentFormKeyDates = Array.isArray(target.keyDates) ? [...target.keyDates] : [];
         syncKeyDatesLength(kCount);
         currentImageData = target.image || '';
-        currentCropOffsetX = typeof target.cropOffsetX === 'number' ? target.cropOffsetX : 0;
-        currentCropOffsetY = typeof target.cropOffsetY === 'number' ? target.cropOffsetY : 0;
-        currentCropZoom = typeof target.cropZoom === 'number' ? target.cropZoom : 1;
-        applyCropStylesToPreview();
         handleBgColorChange(target.imageBgColor || '#fafafa');
 
         // データURLか外部URLかで初期タブを切り替え
@@ -1409,7 +1346,6 @@
         document.getElementById('previewKeyBadge').textContent = '1';
         currentFormFavorite = false;
         currentFormKeyDates = [''];
-        applyCropStylesToPreview();
         handleBgColorChange('#fafafa');
         switchImageMode('url');
         setPreviewImage('');
@@ -1493,117 +1429,19 @@
     function setPreviewImage(src) {
       const img = document.getElementById('imagePreview');
       const placeholder = document.getElementById('previewPlaceholder');
-      const guide = document.getElementById('squareCropGuide');
       if (!img || !placeholder) return;
 
       if (src) {
         img.src = src;
         img.classList.remove('hidden');
         placeholder.classList.add('hidden');
-        if (guide) guide.classList.remove('hidden');
       } else {
         img.removeAttribute('src');
         img.classList.add('hidden');
         placeholder.classList.remove('hidden');
-        if (guide) guide.classList.add('hidden');
         placeholder.innerHTML = `<p class="text-xs text-mono-400">プレビュー</p>`;
       }
-      applyCropStylesToPreview();
       updatePreviewKeyBadgeColor();
-    }
-
-    // プレビュー画像の位置・ズームスタイルと数値ラベルを更新
-    function applyCropStylesToPreview() {
-      const img = document.getElementById('imagePreview');
-      const slider = document.getElementById('imageZoomSlider');
-      const label = document.getElementById('cropCoordLabel');
-      if (img) {
-        img.style.objectPosition = '50% 0%';
-        img.style.transform = `translate(${currentCropOffsetX}%, ${currentCropOffsetY}%) scale(${currentCropZoom})`;
-      }
-      if (slider) {
-        slider.value = currentCropZoom;
-      }
-      if (label) {
-        const signX = currentCropOffsetX > 0 ? '+' : '';
-        const signY = currentCropOffsetY > 0 ? '+' : '';
-        label.textContent = `${signX}${Math.round(currentCropOffsetX)}%, ${signY}${Math.round(currentCropOffsetY)}% / ${currentCropZoom.toFixed(2)}x`;
-      }
-    }
-
-    function handleZoomSliderChange(val) {
-      currentCropZoom = Math.min(3, Math.max(1, parseFloat(val) || 1));
-      applyCropStylesToPreview();
-    }
-
-    function resetImageCrop() {
-      currentCropOffsetX = 0;
-      currentCropOffsetY = 0;
-      currentCropZoom = 1;
-      applyCropStylesToPreview();
-    }
-
-    // プレビュー枠上のマウス＆タッチドラッグで表示位置(translate X/Y)を自由自在に調整
-    function initPreviewDragControls() {
-      const container = document.getElementById('previewContainer');
-      if (!container) return;
-
-      let isDragging = false;
-      let startX = 0;
-      let startY = 0;
-      let startOffsetX = 0;
-      let startOffsetY = 0;
-
-      const onPointerDown = (clientX, clientY) => {
-        if (!currentImageData) return;
-        isDragging = true;
-        startX = clientX;
-        startY = clientY;
-        startOffsetX = currentCropOffsetX;
-        startOffsetY = currentCropOffsetY;
-      };
-
-      const onPointerMove = (clientX, clientY) => {
-        if (!isDragging) return;
-        const rect = container.getBoundingClientRect();
-        if (!rect.width || !rect.height) return;
-
-        // ドラッグした指・マウスの動きに合わせてリニアに追従（-75%〜+75%の広い可動域）
-        const deltaXPercent = ((clientX - startX) / rect.width) * 100;
-        const deltaYPercent = ((clientY - startY) / rect.height) * 100;
-
-        currentCropOffsetX = Math.min(75, Math.max(-75, startOffsetX + deltaXPercent));
-        currentCropOffsetY = Math.min(75, Math.max(-75, startOffsetY + deltaYPercent));
-        applyCropStylesToPreview();
-      };
-
-      const onPointerUp = () => {
-        isDragging = false;
-      };
-
-      // マウス操作
-      container.addEventListener('mousedown', (e) => {
-        if (e.button !== 0) return;
-        e.preventDefault();
-        onPointerDown(e.clientX, e.clientY);
-      });
-      window.addEventListener('mousemove', (e) => {
-        if (!isDragging) return;
-        onPointerMove(e.clientX, e.clientY);
-      });
-      window.addEventListener('mouseup', onPointerUp);
-
-      // スマホ・タッチ操作
-      container.addEventListener('touchstart', (e) => {
-        if (e.touches.length !== 1) return;
-        onPointerDown(e.touches[0].clientX, e.touches[0].clientY);
-      }, { passive: true });
-      container.addEventListener('touchmove', (e) => {
-        if (!isDragging || e.touches.length !== 1) return;
-        e.preventDefault();
-        onPointerMove(e.touches[0].clientX, e.touches[0].clientY);
-      }, { passive: false });
-      container.addEventListener('touchend', onPointerUp);
     }
 
     function handlePreviewError() {
@@ -1861,9 +1699,6 @@
             memo,
             image: imageToSave,
             imageBgColor: currentImageBgColor,
-            cropOffsetX: Math.round(currentCropOffsetX * 10) / 10,
-            cropOffsetY: Math.round(currentCropOffsetY * 10) / 10,
-            cropZoom: currentCropZoom,
             isSample: false
           };
         }
@@ -1881,9 +1716,6 @@
           memo,
           image: imageToSave,
           imageBgColor: currentImageBgColor,
-          cropOffsetX: Math.round(currentCropOffsetX * 10) / 10,
-          cropOffsetY: Math.round(currentCropOffsetY * 10) / 10,
-          cropZoom: currentCropZoom,
           isSample: false,
           createdAt: Date.now()
         };
