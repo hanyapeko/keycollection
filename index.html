@@ -335,7 +335,6 @@
     onclick="if(event.target === this) closeDetailModal()"
   >
     <div class="bg-white border border-mono-200 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden my-auto">
-      <!-- ポップアップヘッダー -->
       <div class="px-5 sm:px-6 py-3.5 border-b border-mono-100 flex items-center justify-between gap-3">
         <div class="flex items-center gap-2 min-w-0">
           <span id="detailFavoriteBadge" class="hidden items-center justify-center w-6 h-6 rounded-full bg-mono-900 text-white shrink-0" title="Favorite">
@@ -347,7 +346,6 @@
         </div>
 
         <div class="flex items-center gap-2 shrink-0">
-          <!-- Editボタン（押すと編集モーダルへ遷移） -->
           <button
             type="button"
             id="detailEditBtn"
@@ -373,10 +371,8 @@
         </div>
       </div>
 
-      <!-- ポップアップ本体 -->
       <div class="p-5 sm:p-6 max-h-[82vh] overflow-y-auto thin-scroll">
         <div class="grid grid-cols-1 sm:grid-cols-12 gap-5 sm:gap-6 items-start">
-          <!-- 左側: 画像プレビュー（トリミング・背景色・Key数・ハート維持） -->
           <div class="sm:col-span-5 max-w-[240px] sm:max-w-none w-full mx-auto">
             <div
               id="detailImageContainer"
@@ -407,9 +403,7 @@
             </div>
           </div>
 
-          <!-- 右側: 全登録情報 -->
           <div class="sm:col-span-7 space-y-4">
-            <!-- 名前・作品・Key数 -->
             <div class="border-b border-mono-100 pb-3.5">
               <p id="detailSeries" class="text-xs text-mono-500 mb-1"></p>
               <div class="flex items-start justify-between gap-3">
@@ -424,13 +418,11 @@
               </div>
             </div>
 
-            <!-- タグ一覧 -->
             <div id="detailTagsSection" class="hidden">
               <span class="block text-[11px] font-medium text-mono-500 mb-1.5">タグ</span>
               <div id="detailTagsList" class="flex flex-wrap gap-1.5"></div>
             </div>
 
-            <!-- メモ -->
             <div id="detailMemoSection" class="hidden">
               <span class="block text-[11px] font-medium text-mono-500 mb-1.5">メモ</span>
               <div class="p-3 rounded-xl bg-mono-50 border border-mono-200/80">
@@ -438,7 +430,6 @@
               </div>
             </div>
 
-            <!-- 鍵をゲットした日付履歴（W / ★ ステータス付き） -->
             <div id="detailDatesSection" class="hidden">
               <span class="block text-[11px] font-medium text-mono-500 mb-1.5">鍵をゲットした日付</span>
               <div id="detailDatesList" class="space-y-1.5 max-h-40 overflow-y-auto thin-scroll pr-1"></div>
@@ -488,7 +479,6 @@
         <input type="hidden" id="charId" />
 
         <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
-          <!-- 左側: 画像登録 & プレビュー (5カラム) -->
           <div class="md:col-span-5 flex flex-col gap-3">
             <div class="flex items-center justify-between">
               <label class="text-xs font-medium text-mono-700">画像 <span class="text-mono-400">*</span></label>
@@ -536,7 +526,6 @@
               </label>
             </div>
 
-            <!-- ライブプレビュー枠（ドラッグ位置調整＆ズーム対応） -->
             <div
               id="previewContainer"
               style="background-color: #fafafa;"
@@ -553,7 +542,6 @@
                 <p class="text-xs text-mono-400">プレビュー</p>
               </div>
 
-              <!-- ドラッグ操作ヒント -->
               <div
                 id="previewDragHint"
                 class="hidden absolute bottom-2 left-2 px-2 py-0.5 rounded bg-black/55 text-white text-[10px] font-mono pointer-events-none backdrop-blur-2xs"
@@ -561,7 +549,6 @@
                 Drag to move
               </div>
 
-              <!-- 右上Key数プレビュー -->
               <span
                 id="previewKeyBadge"
                 style="color: #ffffff; text-shadow: 0 1px 4px rgba(0,0,0,0.65);"
@@ -571,7 +558,6 @@
               </span>
             </div>
 
-            <!-- ズーム・位置調整コントロール -->
             <div class="px-3 py-2 rounded-lg bg-mono-50 border border-mono-200 space-y-1.5">
               <div class="flex items-center justify-between">
                 <label for="imageZoomRange" class="text-xs font-medium text-mono-700">
@@ -597,7 +583,6 @@
               />
             </div>
 
-            <!-- 画像背景色の自由指定 -->
             <div class="flex items-center justify-between px-3 py-2 rounded-lg bg-mono-50 border border-mono-200">
               <label for="imageBgColorInput" class="text-xs font-medium text-mono-700">
                 画像背景色 <span class="text-[10px] text-mono-400 font-normal">（透過PNG用）</span>
@@ -624,7 +609,6 @@
             </div>
           </div>
 
-          <!-- 右側: テキスト項目群 (7カラム) -->
           <div class="md:col-span-7 space-y-4">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -683,7 +667,6 @@
               </div>
             </div>
 
-            <!-- 鍵をゲットした日付（各日付の隣に W / ★ トグルボタン付き） -->
             <div>
               <div class="flex items-center justify-between mb-1">
                 <label class="block text-xs font-medium text-mono-700">
@@ -700,7 +683,6 @@
               <div id="keyDatesContainer" class="space-y-1.5 max-h-36 overflow-y-auto pr-1"></div>
             </div>
 
-            <!-- タグ -->
             <div>
               <label class="block text-xs font-medium text-mono-700 mb-1">
                 タグ <span class="text-mono-400 font-normal">（Enterまたは追加ボタンで複数登録）</span>
@@ -729,7 +711,6 @@
               </div>
             </div>
 
-            <!-- メモ -->
             <div>
               <label for="memoInput" class="block text-xs font-medium text-mono-700 mb-1">
                 メモ
@@ -744,7 +725,6 @@
           </div>
         </div>
 
-        <!-- モーダルフッター -->
         <div class="pt-4 border-t border-mono-100 flex items-center justify-between gap-3">
           <div>
             <button
@@ -767,7 +747,7 @@
               <button
                 type="button"
                 onclick="cancelDeleteCharacter()"
-                class="px-2 py-1 text-xs text-mono-500 hover:text-mono-800"
+                class="px-2.5 py-1 text-xs text-mono-500 hover:text-mono-800"
               >
                 キャンセル
               </button>
@@ -932,7 +912,7 @@
 
     let characters = [];
     let currentFormTags = [];
-    let currentFormKeyDates = []; // [{ date: '', wishlist: false, starwish: false }, ...]
+    let currentFormKeyDates = [];
     let currentFormFavorite = false;
     let filterFavoritesOnly = false;
     let currentImageData = '';
@@ -940,7 +920,6 @@
     let currentImageMode = 'url';
     let activeDetailCharId = null;
 
-    // 画像トリミング・ズーム状態（プレビュー枠幅に対する%移動量とスケール）
     let currentImageZoom = 1;
     let currentImageOffsetX = 0;
     let currentImageOffsetY = 0;
@@ -952,7 +931,6 @@
 
     const luminanceCache = new Map();
 
-    // 鍵ゲット日付データの正規化（文字列配列・オブジェクト配列どちらの過去JSONにも対応）
     function normalizeKeyDates(rawDates) {
       if (!Array.isArray(rawDates)) return [];
       return rawDates.map(item => {
@@ -1108,12 +1086,10 @@
       img.src = src;
     }
 
-    // カード要素に解析結果（右上Key数・ハート色＆PCホバー時オーバーレイ色）を適用
     function applyAdaptiveContrastToCard(cardEl, src, bgHex) {
       analyzeImageBrightness(src, bgHex, ({ overallIsLight, topRightIsLight }) => {
         if (!cardEl || !cardEl.isConnected) return;
 
-        // 1. 右上隅Key数＆非ホバー時ハートの色
         const keyEl = cardEl.querySelector('[data-role="key-number"]');
         const favIconEl = cardEl.querySelector('[data-role="card-fav-heart"]');
         if (topRightIsLight) {
@@ -1136,7 +1112,6 @@
           }
         }
 
-        // 2. PCホバーオーバーレイの背景＆文字色（作品名と名前のみ）
         const overlayEl = cardEl.querySelector('[data-role="hover-overlay"]');
         if (overlayEl) {
           const subTexts = overlayEl.querySelectorAll('[data-role="sub-text"]');
@@ -1311,7 +1286,6 @@
       }
     }
 
-    // カードHTML生成（PCホバー時は作品名と名前のみ・クリックで詳細ポップアップ表示・スマホはホバーなし）
     function createCharacterCardHtml(char) {
       const fallbackImg = `https://placehold.co/600x800/27272a/a1a1aa?text=${encodeURIComponent(char.nameRomaji || 'No+Image')}`;
       const imgSrc = char.image || fallbackImg;
@@ -1320,7 +1294,6 @@
       const offsetX = typeof char.imageOffsetX === 'number' ? char.imageOffsetX : 0;
       const offsetY = typeof char.imageOffsetY === 'number' ? char.imageOffsetY : 0;
 
-      // Favoriteキャラの非ホバー時ハートマーク（右上Key数の下に表示）
       const nonHoverHeartHtml = char.isFavorite
         ? `<div
             data-role="card-fav-heart"
@@ -1341,7 +1314,6 @@
           class="char-card shadow-xs border border-mono-200/70 select-none group"
           onclick="openDetailModal('${escapeJsStr(char.id)}')"
         >
-          <!-- キャラクター画像（トリミング位置・ズーム反映） -->
           <img
             src="${escapeHtml(imgSrc)}"
             alt="${escapeHtml(char.nameRomaji)}"
@@ -1351,7 +1323,6 @@
             class="w-full h-full object-cover"
           />
 
-          <!-- 常時表示: 右上隅のKey数 -->
           <div
             data-role="key-number"
             style="color: #ffffff; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.75);"
@@ -1360,10 +1331,8 @@
             ${Number(char.keyCount) || 0}
           </div>
 
-          <!-- 常時表示（PCホバー時のみ非表示）: Key数下のハートマーク -->
           ${nonHoverHeartHtml}
 
-          <!-- PCホバー時のみ表示: 作品名と名前のみ -->
           <div
             data-role="hover-overlay"
             class="char-overlay absolute inset-0 z-20 bg-mono-950/84 backdrop-blur-[2px] p-3 sm:p-4 flex-col justify-end text-white"
@@ -1416,7 +1385,6 @@
         allHeader.classList.remove('flex');
       }
 
-      // 全キャラ一覧（縦長カード・スマホ3列 / PC4列）
       grid.innerHTML = list.map(c => createCharacterCardHtml(c)).join('');
 
       const charMap = new Map(list.map(c => [c.id, c]));
@@ -1441,7 +1409,6 @@
       const offsetX = typeof char.imageOffsetX === 'number' ? char.imageOffsetX : 0;
       const offsetY = typeof char.imageOffsetY === 'number' ? char.imageOffsetY : 0;
 
-      // ヘッダー情報
       const headerSeries = document.getElementById('detailHeaderSeries');
       headerSeries.textContent = char.series || char.nameRomaji || '';
 
@@ -1454,7 +1421,6 @@
         favBadge.classList.remove('inline-flex');
       }
 
-      // 左側画像
       const imgContainer = document.getElementById('detailImageContainer');
       imgContainer.style.backgroundColor = bgHex;
 
@@ -1478,7 +1444,6 @@
         cardHeartEl.classList.add('hidden');
       }
 
-      // 画像輝度に応じたKey数＆ハート色調整
       analyzeImageBrightness(imgSrc, bgHex, ({ topRightIsLight }) => {
         if (topRightIsLight) {
           keyNumEl.style.color = '#18181b';
@@ -1493,7 +1458,6 @@
         }
       });
 
-      // 右側テキスト情報
       const seriesEl = document.getElementById('detailSeries');
       if (char.series) {
         seriesEl.textContent = char.series;
@@ -1516,7 +1480,6 @@
 
       document.getElementById('detailKeyCountText').textContent = Number(char.keyCount) || 0;
 
-      // タグ一覧（クリックで検索フィルタ可能）
       const tagsSec = document.getElementById('detailTagsSection');
       const tagsList = document.getElementById('detailTagsList');
       if (Array.isArray(char.tags) && char.tags.length > 0) {
@@ -1534,7 +1497,6 @@
         tagsList.innerHTML = '';
       }
 
-      // メモ
       const memoSec = document.getElementById('detailMemoSection');
       const memoText = document.getElementById('detailMemoText');
       if (char.memo && char.memo.trim()) {
@@ -1545,7 +1507,6 @@
         memoText.textContent = '';
       }
 
-      // 鍵をゲットした日付履歴（W / ★ 表示付き）
       const datesSec = document.getElementById('detailDatesSection');
       const datesList = document.getElementById('detailDatesList');
       const normalizedDates = normalizeKeyDates(char.keyDates);
@@ -1705,7 +1666,6 @@
         currentImageData = target.image || '';
         handleBgColorChange(target.imageBgColor || '#fafafa');
 
-        // 保存済みのズーム・位置を復元
         currentImageZoom = typeof target.imageZoom === 'number' ? target.imageZoom : 1;
         currentImageOffsetX = typeof target.imageOffsetX === 'number' ? target.imageOffsetX : 0;
         currentImageOffsetY = typeof target.imageOffsetY === 'number' ? target.imageOffsetY : 0;
@@ -1959,7 +1919,6 @@
       }
     }
 
-    // Key数変更時にプレビューバッジと日付入力欄の数を同期
     function handleKeyCountChange(val) {
       const num = Math.max(0, parseInt(val, 10) || 0);
       document.getElementById('previewKeyBadge').textContent = num;
@@ -2256,7 +2215,7 @@
 
     function escapeJsStr(str) {
       if (str === null || str === undefined) return '';
-      return String(str).replace(/\/g, '\\').replace(/'/g, "\'");
+      return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
     }
   </script>
 </body>
