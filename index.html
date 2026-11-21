@@ -40,7 +40,6 @@
   </script>
 
   <style>
-    /* カスタムスクロールバーと微細なアニメーション */
     body {
       background-color: #fafafa;
       color: #18181b;
@@ -75,56 +74,55 @@
       }
     }
 
-    /* カードのアスペクト比（全カード縦長 3:4 に統一）とホバーアニメーション */
+    /* カードの共通スタイル（全カード縦長 3:4・四隅シャープ・クリックで詳細ポップアップ） */
     .char-card {
       position: relative;
       overflow: hidden;
       background-color: #e4e4e7;
-    }
-
-    .char-card--portrait {
       aspect-ratio: 3 / 4;
+      cursor: pointer;
     }
 
     .char-card img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      object-position: center center;
+      --img-tx: 0%;
+      --img-ty: 0%;
+      --img-scale: 1;
+      transform: translate(var(--img-tx), var(--img-ty)) scale(var(--img-scale));
       transform-origin: center center;
-      transform: translate(var(--img-tx, 0%), var(--img-ty, 0%)) scale(var(--img-scale, 1));
       transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), filter 0.4s ease;
     }
 
-    .char-card:hover img,
-    .char-card.is-active img {
-      transform: translate(var(--img-tx, 0%), var(--img-ty, 0%)) scale(calc(var(--img-scale, 1) * 1.04));
-    }
-
-    /* 常時表示バッジ（Key数＆Favoriteハート）: ホバー時はフェードアウト */
-    .char-static-badges {
-      opacity: 1;
-      transition: opacity 0.22s ease;
-    }
-
-    .char-card:hover .char-static-badges,
-    .char-card.is-active .char-static-badges {
-      opacity: 0;
-    }
-
+    /* ホバー機能はマウス操作可能なデバイス（PC等）のみで有効化し、スマホでは無効化 */
     .char-overlay {
-      opacity: 0;
-      transition: opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1);
-      pointer-events: none;
+      display: none;
     }
 
-    .char-card:hover .char-overlay,
-    .char-card.is-active .char-overlay {
-      opacity: 1;
-      pointer-events: auto;
+    @media (hover: hover) and (pointer: fine) {
+      .char-card:hover img {
+        transform: translate(var(--img-tx), var(--img-ty)) scale(calc(var(--img-scale) * 1.04));
+      }
+
+      .char-overlay {
+        display: flex;
+        opacity: 0;
+        transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        pointer-events: none;
+      }
+
+      .char-card:hover .char-overlay {
+        opacity: 1;
+      }
+
+      .char-card:hover .char-fav-indicator {
+        opacity: 0;
+      }
     }
 
-    /* カスタムスクロールバー（ホバーオーバーレイ内の長文メモ用） */
+    .char-fav-indicator {
+      transition: opacity 0.2s ease;
+    }
+
+    /* カスタムスクロールバー */
     .thin-scroll::-webkit-scrollbar {
       width: 3px;
     }
@@ -142,16 +140,13 @@
   <!-- ==================== HEADER ==================== -->
   <header class="sticky top-0 z-30 bg-mono-50/90 backdrop-blur-md border-b border-mono-200">
     <div class="max-w-6xl mx-auto px-4 sm:px-8 h-16 sm:h-20 flex items-center justify-between gap-4">
-      <!-- シンプルなタイトルのみ -->
       <div class="flex items-baseline gap-3">
         <h1 class="text-lg sm:text-xl font-medium tracking-tight text-mono-950">
           My Key Collection
         </h1>
       </div>
 
-      <!-- アクションボタン群 -->
       <div class="flex items-center gap-2 sm:gap-3">
-        <!-- バックアップ / 復元 -->
         <button
           type="button"
           onclick="openBackupModal()"
@@ -161,7 +156,6 @@
           Backup
         </button>
 
-        <!-- 新規登録ボタン -->
         <button
           type="button"
           onclick="openEditorModal()"
@@ -179,7 +173,6 @@
   <!-- ==================== FILTER & SORT BAR ==================== -->
   <section class="max-w-6xl w-full mx-auto px-4 sm:px-8 pt-6 pb-4">
     <div class="flex flex-col gap-3">
-      <!-- 上段: 検索バー & お気に入り絞り込み & Key数 & 並び替え -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5">
         <!-- キーワード検索 -->
         <div class="lg:col-span-5 relative">
@@ -253,7 +246,7 @@
         </div>
       </div>
 
-      <!-- 指定Key数入力（"指定数..."選択時のみ表示） & ステータスバー -->
+      <!-- ステータスバー -->
       <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-mono-500 pt-1">
         <div class="flex flex-wrap items-center gap-3">
           <div class="flex items-center gap-2 font-mono">
@@ -262,7 +255,6 @@
             <span id="totalKeysCount">0 keys</span>
           </div>
 
-          <!-- ピンポイントKey数入力 -->
           <div id="exactKeyWrapper" class="hidden items-center gap-1.5">
             <label for="exactKeyInput" class="text-mono-500">Key数 =</label>
             <input
@@ -285,7 +277,6 @@
           </button>
         </div>
 
-        <!-- サンプルデータ案内（サンプルが残っている間のみ表示） -->
         <div id="sampleNotice" class="hidden items-center gap-2 text-mono-400">
           <span>※サンプル表示中</span>
           <button
@@ -302,7 +293,7 @@
 
   <!-- ==================== MAIN GALLERY ==================== -->
   <main class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-8 pt-2 pb-16 space-y-14">
-    <!-- 【Favorites】セクション（お気に入り登録キャラがある場合表示） -->
+    <!-- 【Favorites】セクション -->
     <section id="favoritesSection" class="hidden">
       <div class="flex items-center justify-between mb-6 pb-2.5 border-b border-mono-200">
         <div class="flex items-center gap-2">
@@ -321,7 +312,6 @@
       <div id="allCharactersHeader" class="hidden items-center justify-between mb-6 pb-2.5 border-b border-mono-200">
         <h2 class="text-xs font-mono uppercase tracking-widest text-mono-500 font-medium">All Characters</h2>
       </div>
-      <!-- 4カラム(PC) / 3カラム(スマホ) 縦長グリッド -->
       <div id="galleryGrid" class="collection-grid"></div>
     </section>
 
@@ -338,6 +328,127 @@
     </div>
   </main>
 
+  <!-- ==================== CHARACTER DETAIL POPUP MODAL ==================== -->
+  <div
+    id="detailModal"
+    class="fixed inset-0 z-40 hidden items-center justify-center bg-black/55 backdrop-blur-xs p-4 overflow-y-auto"
+    onclick="if(event.target === this) closeDetailModal()"
+  >
+    <div class="bg-white border border-mono-200 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden my-auto">
+      <!-- ポップアップヘッダー -->
+      <div class="px-5 sm:px-6 py-3.5 border-b border-mono-100 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2 min-w-0">
+          <span id="detailFavoriteBadge" class="hidden items-center justify-center w-6 h-6 rounded-full bg-mono-900 text-white shrink-0" title="Favorite">
+            <svg class="w-3 h-3 fill-white" viewBox="0 0 24 24">
+              <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
+            </svg>
+          </span>
+          <span id="detailHeaderSeries" class="text-xs text-mono-500 truncate"></span>
+        </div>
+
+        <div class="flex items-center gap-2 shrink-0">
+          <!-- Editボタン（押すと編集モーダルへ遷移） -->
+          <button
+            type="button"
+            id="detailEditBtn"
+            onclick="editFromDetailModal()"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-mono-900 hover:bg-mono-800 text-white text-xs font-medium transition-colors"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+            </svg>
+            <span>Edit</span>
+          </button>
+
+          <button
+            type="button"
+            onclick="closeDetailModal()"
+            class="p-1.5 text-mono-400 hover:text-mono-900 rounded-lg transition-colors"
+            title="閉じる"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- ポップアップ本体 -->
+      <div class="p-5 sm:p-6 max-h-[82vh] overflow-y-auto thin-scroll">
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-5 sm:gap-6 items-start">
+          <!-- 左側: 画像プレビュー（トリミング・背景色・Key数・ハート維持） -->
+          <div class="sm:col-span-5 max-w-[240px] sm:max-w-none w-full mx-auto">
+            <div
+              id="detailImageContainer"
+              style="background-color: #fafafa;"
+              class="relative w-full aspect-[3/4] overflow-hidden border border-mono-200"
+            >
+              <img
+                id="detailImage"
+                alt=""
+                class="w-full h-full object-cover"
+              />
+              <div
+                id="detailKeyNumber"
+                style="color: #ffffff; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.75);"
+                class="absolute top-2.5 right-3 z-10 font-mono text-sm font-semibold tracking-tight pointer-events-none"
+              >
+                0
+              </div>
+              <div
+                id="detailCardHeart"
+                style="color: #ffffff; filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.75));"
+                class="hidden absolute top-8 right-3 z-10 pointer-events-none"
+              >
+                <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                  <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- 右側: 全登録情報 -->
+          <div class="sm:col-span-7 space-y-4">
+            <!-- 名前・作品・Key数 -->
+            <div class="border-b border-mono-100 pb-3.5">
+              <p id="detailSeries" class="text-xs text-mono-500 mb-1"></p>
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <h3 id="detailNameRomaji" class="text-lg sm:text-xl font-semibold text-mono-950 tracking-tight leading-snug"></h3>
+                  <p id="detailNameJp" class="text-xs sm:text-sm text-mono-600 mt-0.5"></p>
+                </div>
+                <div class="px-2.5 py-1 rounded-lg bg-mono-100 border border-mono-200/80 text-right shrink-0">
+                  <span class="block text-[10px] font-mono uppercase tracking-wider text-mono-400">Keys</span>
+                  <span id="detailKeyCountText" class="font-mono text-sm font-semibold text-mono-900">0</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- タグ一覧 -->
+            <div id="detailTagsSection" class="hidden">
+              <span class="block text-[11px] font-medium text-mono-500 mb-1.5">タグ</span>
+              <div id="detailTagsList" class="flex flex-wrap gap-1.5"></div>
+            </div>
+
+            <!-- メモ -->
+            <div id="detailMemoSection" class="hidden">
+              <span class="block text-[11px] font-medium text-mono-500 mb-1.5">メモ</span>
+              <div class="p-3 rounded-xl bg-mono-50 border border-mono-200/80">
+                <p id="detailMemoText" class="text-xs text-mono-800 leading-relaxed whitespace-pre-wrap"></p>
+              </div>
+            </div>
+
+            <!-- 鍵をゲットした日付履歴（W / ★ ステータス付き） -->
+            <div id="detailDatesSection" class="hidden">
+              <span class="block text-[11px] font-medium text-mono-500 mb-1.5">鍵をゲットした日付</span>
+              <div id="detailDatesList" class="space-y-1.5 max-h-40 overflow-y-auto thin-scroll pr-1"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ==================== ADD / EDIT MODAL ==================== -->
   <div
     id="editorModal"
@@ -345,11 +456,9 @@
     onclick="if(event.target === this) closeEditorModal()"
   >
     <div class="bg-white border border-mono-200 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden my-auto">
-      <!-- モーダルヘッダー -->
       <div class="px-6 py-4 border-b border-mono-100 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <h2 id="modalTitle" class="text-base font-medium text-mono-900">キャラクター登録</h2>
-          <!-- お気に入りハートトグルボタン -->
           <button
             type="button"
             id="modalFavToggleBtn"
@@ -375,7 +484,6 @@
         </button>
       </div>
 
-      <!-- フォーム本体 -->
       <form id="charForm" onsubmit="handleSaveCharacter(event)" class="p-6 space-y-5 max-h-[82vh] overflow-y-auto">
         <input type="hidden" id="charId" />
 
@@ -384,7 +492,6 @@
           <div class="md:col-span-5 flex flex-col gap-3">
             <div class="flex items-center justify-between">
               <label class="text-xs font-medium text-mono-700">画像 <span class="text-mono-400">*</span></label>
-              <!-- URL / ファイルアップロード切替タブ -->
               <div class="inline-flex rounded-lg bg-mono-100 p-0.5 text-[11px]">
                 <button
                   type="button"
@@ -405,7 +512,6 @@
               </div>
             </div>
 
-            <!-- URL入力欄 -->
             <div id="imageUrlBox">
               <input
                 id="imageUrlInput"
@@ -416,7 +522,6 @@
               />
             </div>
 
-            <!-- ファイルアップロード欄 -->
             <div id="imageFileBox" class="hidden">
               <label class="flex flex-col items-center justify-center w-full py-2.5 px-3 border border-dashed border-mono-300 rounded-lg bg-mono-50 hover:bg-mono-100/70 cursor-pointer transition-colors">
                 <span class="text-xs text-mono-600 font-medium">画像ファイルを選択</span>
@@ -431,7 +536,7 @@
               </label>
             </div>
 
-            <!-- ライブプレビュー枠（縦長 3:4・四隅シャープ・ドラッグ位置移動＆ズーム対応） -->
+            <!-- ライブプレビュー枠（ドラッグ位置調整＆ズーム対応） -->
             <div
               id="previewContainer"
               style="background-color: #fafafa;"
@@ -441,72 +546,58 @@
                 id="imagePreview"
                 alt="Preview"
                 draggable="false"
-                style="transform: translate(0%, 0%) scale(1); transform-origin: center center;"
-                class="hidden w-full h-full object-cover object-center cursor-grab active:cursor-grabbing"
+                class="hidden w-full h-full object-cover cursor-grab active:cursor-grabbing select-none"
                 onerror="handlePreviewError()"
               />
-              <!-- トリミング三分割グリッドガイド（ドラッグ中・画像設定時に薄く表示） -->
-              <div
-                id="cropGridGuide"
-                class="hidden pointer-events-none absolute inset-0 border border-white/25"
-              >
-                <div class="absolute inset-y-0 left-1/3 w-px bg-white/20"></div>
-                <div class="absolute inset-y-0 left-2/3 w-px bg-white/20"></div>
-                <div class="absolute inset-x-0 top-1/3 h-px bg-white/20"></div>
-                <div class="absolute inset-x-0 top-2/3 h-px bg-white/20"></div>
-              </div>
               <div id="previewPlaceholder" class="text-center p-4 pointer-events-none">
                 <p class="text-xs text-mono-400">プレビュー</p>
               </div>
-              <!-- 右上Key数＆Favoriteハートプレビュー -->
+
+              <!-- ドラッグ操作ヒント -->
               <div
+                id="previewDragHint"
+                class="hidden absolute bottom-2 left-2 px-2 py-0.5 rounded bg-black/55 text-white text-[10px] font-mono pointer-events-none backdrop-blur-2xs"
+              >
+                Drag to move
+              </div>
+
+              <!-- 右上Key数プレビュー -->
+              <span
                 id="previewKeyBadge"
                 style="color: #ffffff; text-shadow: 0 1px 4px rgba(0,0,0,0.65);"
-                class="absolute top-2.5 right-3 z-10 flex flex-col items-end gap-1 pointer-events-none transition-colors"
+                class="absolute top-2.5 right-3 font-mono text-sm font-semibold pointer-events-none transition-colors"
               >
-                <span id="previewKeyNumber" class="font-mono text-sm font-semibold leading-none">1</span>
-                <svg id="previewFavHeart" class="hidden w-3.5 h-3.5 fill-current drop-shadow" viewBox="0 0 24 24">
-                  <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
-                </svg>
-              </div>
+                1
+              </span>
             </div>
 
-            <!-- ズーム＆位置調整コントロール（SNSプロフィール画像風の操作感） -->
-            <div class="px-3 py-2.5 rounded-lg bg-mono-50 border border-mono-200 space-y-2">
+            <!-- ズーム・位置調整コントロール -->
+            <div class="px-3 py-2 rounded-lg bg-mono-50 border border-mono-200 space-y-1.5">
               <div class="flex items-center justify-between">
-                <span class="text-[11px] font-medium text-mono-700">ズーム・トリミング位置</span>
-                <div class="flex items-center gap-2">
-                  <span id="cropZoomLabel" class="font-mono text-[10px] text-mono-500">1.00x</span>
-                  <button
-                    type="button"
-                    onclick="resetImageCrop()"
-                    class="text-[10px] text-mono-400 hover:text-mono-900 underline underline-offset-2"
-                  >
-                    リセット
-                  </button>
-                </div>
+                <label for="imageZoomRange" class="text-xs font-medium text-mono-700">
+                  ズーム・位置 <span id="imageZoomLabel" class="font-mono text-[11px] text-mono-500 ml-1">1.00x</span>
+                </label>
+                <button
+                  type="button"
+                  onclick="resetImageTransform()"
+                  class="text-[10px] text-mono-400 hover:text-mono-800 underline underline-offset-2"
+                >
+                  位置リセット
+                </button>
               </div>
-              <div class="flex items-center gap-2">
-                <svg class="w-3.5 h-3.5 text-mono-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607ZM10.5 7.5v6m3-3h-6" />
-                </svg>
-                <input
-                  id="imageZoomSlider"
-                  type="range"
-                  min="1"
-                  max="3"
-                  step="0.05"
-                  value="1"
-                  oninput="handleZoomSliderChange(this.value)"
-                  class="flex-1 h-1.5 bg-mono-200 rounded-lg appearance-none cursor-pointer accent-mono-900"
-                />
-              </div>
-              <p class="text-[10px] text-mono-400 leading-tight">
-                ※プレビューをドラッグ（スワイプ）して表示位置を調整できます
-              </p>
+              <input
+                id="imageZoomRange"
+                type="range"
+                min="1"
+                max="2.5"
+                step="0.02"
+                value="1"
+                oninput="handleZoomChange(this.value)"
+                class="w-full accent-mono-900 cursor-pointer h-1.5 bg-mono-200 rounded-lg"
+              />
             </div>
 
-            <!-- 画像背景色の自由指定（透過PNG対応） -->
+            <!-- 画像背景色の自由指定 -->
             <div class="flex items-center justify-between px-3 py-2 rounded-lg bg-mono-50 border border-mono-200">
               <label for="imageBgColorInput" class="text-xs font-medium text-mono-700">
                 画像背景色 <span class="text-[10px] text-mono-400 font-normal">（透過PNG用）</span>
@@ -535,7 +626,6 @@
 
           <!-- 右側: テキスト項目群 (7カラム) -->
           <div class="md:col-span-7 space-y-4">
-            <!-- キャラ名（ローマ字表記メイン & 日本語表記） -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label for="nameRomaji" class="block text-xs font-medium text-mono-700 mb-1">
@@ -562,7 +652,6 @@
               </div>
             </div>
 
-            <!-- Keyの数 & 作品名 -->
             <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
               <div class="sm:col-span-4">
                 <label for="keyCount" class="block text-xs font-medium text-mono-700 mb-1">
@@ -594,11 +683,11 @@
               </div>
             </div>
 
-            <!-- 鍵をゲットした日付 & Wishlist記録（ホバー非表示・編集画面専用） -->
+            <!-- 鍵をゲットした日付（各日付の隣に W / ★ トグルボタン付き） -->
             <div>
               <div class="flex items-center justify-between mb-1">
                 <label class="block text-xs font-medium text-mono-700">
-                  鍵をゲットした日付 <span class="text-mono-400 font-normal">（W = Wishlist / ★ = Starwish・編集画面専用）</span>
+                  鍵をゲットした日付 <span class="text-mono-400 font-normal">（W = Wishlist / ★ = Starwish）</span>
                 </label>
                 <button
                   type="button"
@@ -611,7 +700,7 @@
               <div id="keyDatesContainer" class="space-y-1.5 max-h-36 overflow-y-auto pr-1"></div>
             </div>
 
-            <!-- タグ（複数登録可） -->
+            <!-- タグ -->
             <div>
               <label class="block text-xs font-medium text-mono-700 mb-1">
                 タグ <span class="text-mono-400 font-normal">（Enterまたは追加ボタンで複数登録）</span>
@@ -633,10 +722,8 @@
                 </button>
               </div>
 
-              <!-- 登録済みタグチップ表示エリア -->
               <div id="selectedTagsContainer" class="flex flex-wrap gap-1.5 mt-2"></div>
 
-              <!-- 既存タグからのクイック選択 -->
               <div id="existingTagsQuickPick" class="hidden flex-wrap items-center gap-1 mt-2 pt-2 border-t border-mono-100">
                 <span class="text-[10px] text-mono-400 mr-1">候補:</span>
               </div>
@@ -657,7 +744,7 @@
           </div>
         </div>
 
-        <!-- モーダルフッター（削除 & 保存） -->
+        <!-- モーダルフッター -->
         <div class="pt-4 border-t border-mono-100 flex items-center justify-between gap-3">
           <div>
             <button
@@ -668,7 +755,6 @@
             >
               このキャラを削除
             </button>
-            <!-- インライン削除確認（alert/confirm不使用） -->
             <div id="deleteConfirmBox" class="hidden items-center gap-2">
               <span class="text-xs text-mono-700">本当に削除しますか？</span>
               <button
@@ -733,7 +819,6 @@
           登録データは自動的にこのブラウザ内に保存されます。別端末への移行や万が一の備えとして、JSONファイルでの書き出し・読み込みが可能です。
         </p>
 
-        <!-- エクスポート -->
         <div class="p-4 rounded-xl bg-mono-50 border border-mono-200/80 flex items-center justify-between gap-4">
           <div>
             <h3 class="text-xs font-medium text-mono-900">JSONファイルとして保存</h3>
@@ -748,7 +833,6 @@
           </button>
         </div>
 
-        <!-- インポート -->
         <div class="p-4 rounded-xl bg-mono-50 border border-mono-200/80 flex items-center justify-between gap-4">
           <div>
             <h3 class="text-xs font-medium text-mono-900">JSONファイルから復元</h3>
@@ -780,7 +864,6 @@
   <script>
     const STORAGE_KEY = 'mudae_my_key_collection_v1';
 
-    // 初回起動用のサンプルデータ（モノクロでスタイリッシュなプレースホルダー）
     const SAMPLE_DATA = [
       {
         id: 'sample_1',
@@ -788,15 +871,19 @@
         nameJp: 'フリーレン',
         keyCount: 12,
         keyDates: [
-          { date: '2025-01-12', isWishlist: true },
-          { date: '2025-02-03', isWishlist: false },
-          { date: '2025-03-19', isWishlist: false }
+          { date: '2025-01-12', wishlist: true, starwish: true },
+          { date: '2025-02-03', wishlist: true, starwish: false },
+          { date: '2025-03-19', wishlist: false, starwish: false }
         ],
         isFavorite: true,
         series: 'Sousou no Frieren',
         tags: ['#protagonist', '#mage', '#goldkey'],
         memo: 'メイン推し。Chaos key到達済み。',
         image: 'https://placehold.co/600x800/18181b/f4f4f5?text=Frieren',
+        imageBgColor: '#18181b',
+        imageZoom: 1,
+        imageOffsetX: 0,
+        imageOffsetY: 0,
         isSample: true,
         createdAt: Date.now() - 300000
       },
@@ -806,14 +893,18 @@
         nameJp: 'マキマ',
         keyCount: 6,
         keyDates: [
-          { date: '2025-04-01', isWishlist: true },
-          { date: '2025-05-15', isWishlist: true }
+          { date: '2025-04-01', wishlist: true, starwish: true },
+          { date: '2025-05-15', wishlist: false, starwish: false }
         ],
         isFavorite: true,
         series: 'Chainsaw Man',
         tags: ['#antagonist', '#goldkey'],
         memo: 'あと4つで10key。トレード不可。',
         image: 'https://placehold.co/600x800/27272a/e4e4e7?text=Makima',
+        imageBgColor: '#27272a',
+        imageZoom: 1,
+        imageOffsetX: 0,
+        imageOffsetY: 0,
         isSample: true,
         createdAt: Date.now() - 200000
       },
@@ -823,13 +914,17 @@
         nameJp: 'ヴァイオレット・エヴァーガーデン',
         keyCount: 3,
         keyDates: [
-          { date: '2025-06-20', isWishlist: false }
+          { date: '2025-06-20', wishlist: true, starwish: false }
         ],
         isFavorite: false,
         series: 'Violet Evergarden',
         tags: ['#protagonist', '#silverkey'],
         memo: 'シルバーキー獲得。次は6key目標。',
         image: 'https://placehold.co/600x800/3f3f46/fafafa?text=Violet',
+        imageBgColor: '#3f3f46',
+        imageZoom: 1,
+        imageOffsetX: 0,
+        imageOffsetY: 0,
         isSample: true,
         createdAt: Date.now() - 100000
       }
@@ -837,58 +932,63 @@
 
     let characters = [];
     let currentFormTags = [];
-    // { date: 'YYYY-MM-DD', isWishlist: boolean } の配列
-    let currentFormKeyDates = [];
+    let currentFormKeyDates = []; // [{ date: '', wishlist: false, starwish: false }, ...]
     let currentFormFavorite = false;
     let filterFavoritesOnly = false;
     let currentImageData = '';
     let currentImageBgColor = '#fafafa';
     let currentImageMode = 'url';
-    // 画像のトリミング位置（カード幅/高さに対する%）＆ズーム倍率
-    let currentCropOffsetX = 0;
-    let currentCropOffsetY = 0;
-    let currentCropZoom = 1;
-    // 画像ごとの輝度解析キャッシュ（URL/DataURL + 背景色 -> { overallIsLight, topRightIsLight }）
+    let activeDetailCharId = null;
+
+    // 画像トリミング・ズーム状態（プレビュー枠幅に対する%移動量とスケール）
+    let currentImageZoom = 1;
+    let currentImageOffsetX = 0;
+    let currentImageOffsetY = 0;
+    let isDraggingPreview = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let dragOriginOffsetX = 0;
+    let dragOriginOffsetY = 0;
+
     const luminanceCache = new Map();
 
-    // 初期化処理
-    window.addEventListener('DOMContentLoaded', () => {
-      loadCharacters();
-      populateFilterOptions();
-      initPreviewDragControls();
-      applyFilters();
-    });
-
-    // 日付アイテムを旧形式('YYYY-MM-DD')・新形式({ date, isWishlist, isStarwish })どちらからも正規化
-    function normalizeKeyDateEntry(entry) {
-      if (entry && typeof entry === 'object') {
-        return {
-          date: typeof entry.date === 'string' ? entry.date : '',
-          isWishlist: Boolean(entry.isWishlist),
-          isStarwish: Boolean(entry.isStarwish)
-        };
-      }
-      return {
-        date: typeof entry === 'string' ? entry : '',
-        isWishlist: false,
-        isStarwish: false
-      };
+    // 鍵ゲット日付データの正規化（文字列配列・オブジェクト配列どちらの過去JSONにも対応）
+    function normalizeKeyDates(rawDates) {
+      if (!Array.isArray(rawDates)) return [];
+      return rawDates.map(item => {
+        if (typeof item === 'string') {
+          return { date: item, wishlist: false, starwish: false };
+        }
+        if (item && typeof item === 'object') {
+          return {
+            date: item.date || '',
+            wishlist: Boolean(item.wishlist),
+            starwish: Boolean(item.starwish)
+          };
+        }
+        return { date: '', wishlist: false, starwish: false };
+      });
     }
 
-    // キャラクターオブジェクトの正規化（既存JSONとの後方互換性保証）
     function normalizeCharacter(c) {
       return {
         ...c,
         isFavorite: Boolean(c.isFavorite),
-        keyDates: Array.isArray(c.keyDates) ? c.keyDates.map(normalizeKeyDateEntry) : [],
+        keyDates: normalizeKeyDates(c.keyDates),
         imageBgColor: c.imageBgColor || '#fafafa',
-        cropOffsetX: typeof c.cropOffsetX === 'number' ? c.cropOffsetX : 0,
-        cropOffsetY: typeof c.cropOffsetY === 'number' ? c.cropOffsetY : 0,
-        cropZoom: typeof c.cropZoom === 'number' ? c.cropZoom : 1
+        imageZoom: typeof c.imageZoom === 'number' ? c.imageZoom : 1,
+        imageOffsetX: typeof c.imageOffsetX === 'number' ? c.imageOffsetX : 0,
+        imageOffsetY: typeof c.imageOffsetY === 'number' ? c.imageOffsetY : 0
       };
     }
 
-    // LocalStorageから読み込み
+    window.addEventListener('DOMContentLoaded', () => {
+      loadCharacters();
+      populateFilterOptions();
+      setupPreviewDragEvents();
+      applyFilters();
+    });
+
     function loadCharacters() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
@@ -905,7 +1005,6 @@
       }
     }
 
-    // LocalStorageへ保存
     function saveCharacters() {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(characters));
@@ -914,7 +1013,6 @@
       }
     }
 
-    // 16進カラーコード(#rrggbb)をRGB配列に変換
     function hexToRgb(hex) {
       const clean = (hex || '#fafafa').replace('#', '');
       const full = clean.length === 3
@@ -924,12 +1022,10 @@
       return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
     }
 
-    // RGBから相対輝度(0〜255)を算出
     function getRgbLuminance(r, g, b) {
       return 0.299 * r + 0.587 * g + 0.114 * b;
     }
 
-    // 画像全体＆右上隅の明るさを解析してコールバックへ返す（透過PNGの場合は指定背景色と合成計算）
     function analyzeImageBrightness(src, bgColorHex, callback) {
       const bgHex = bgColorHex || '#fafafa';
       const [bgR, bgG, bgB] = hexToRgb(bgHex);
@@ -964,7 +1060,6 @@
           canvas.height = sampleH;
           const ctx = canvas.getContext('2d');
 
-          // 先にユーザー指定の背景色を塗ってから画像を描画（透過PNG対応）
           ctx.fillStyle = bgHex;
           ctx.fillRect(0, 0, sampleW, sampleH);
           ctx.drawImage(img, 0, 0, sampleW, sampleH);
@@ -973,13 +1068,11 @@
 
           let totalLum = 0;
           let totalCount = 0;
-
           let trLum = 0;
           let trCount = 0;
 
-          // 右上エリア（右端30% × 上端25%）をピンポイントサンプリング
           const trStartX = Math.floor(sampleW * 0.70);
-          const trEndY = Math.floor(sampleH * 0.25);
+          const trEndY = Math.floor(sampleH * 0.32);
 
           for (let y = 0; y < sampleH; y++) {
             for (let x = 0; x < sampleW; x++) {
@@ -1003,7 +1096,6 @@
           luminanceCache.set(cacheKey, result);
           callback(result);
         } catch (err) {
-          // CORS制限等でピクセル取得できない外部URLはデフォルト判定を使用
           luminanceCache.set(cacheKey, defaultResult);
           callback(defaultResult);
         }
@@ -1016,78 +1108,63 @@
       img.src = src;
     }
 
-    // カード要素に解析結果（ホバー文字色＆右上Key数・ハート文字色）を適用
+    // カード要素に解析結果（右上Key数・ハート色＆PCホバー時オーバーレイ色）を適用
     function applyAdaptiveContrastToCard(cardEl, src, bgHex) {
       analyzeImageBrightness(src, bgHex, ({ overallIsLight, topRightIsLight }) => {
         if (!cardEl || !cardEl.isConnected) return;
 
-        // 1. 右上隅Key数＆Favoriteハートの文字色（背景ボックスなし）
-        const keyBadgeGroup = cardEl.querySelector('[data-role="key-badge-group"]');
-        if (keyBadgeGroup) {
-          if (topRightIsLight) {
-            keyBadgeGroup.style.color = '#18181b';
-            keyBadgeGroup.style.textShadow = '0 1px 3px rgba(255, 255, 255, 0.85)';
-          } else {
-            keyBadgeGroup.style.color = '#ffffff';
-            keyBadgeGroup.style.textShadow = '0 1px 4px rgba(0, 0, 0, 0.75)';
+        // 1. 右上隅Key数＆非ホバー時ハートの色
+        const keyEl = cardEl.querySelector('[data-role="key-number"]');
+        const favIconEl = cardEl.querySelector('[data-role="card-fav-heart"]');
+        if (topRightIsLight) {
+          if (keyEl) {
+            keyEl.style.color = '#18181b';
+            keyEl.style.textShadow = '0 1px 3px rgba(255, 255, 255, 0.85)';
+          }
+          if (favIconEl) {
+            favIconEl.style.color = '#18181b';
+            favIconEl.style.filter = 'drop-shadow(0 1px 2px rgba(255, 255, 255, 0.85))';
+          }
+        } else {
+          if (keyEl) {
+            keyEl.style.color = '#ffffff';
+            keyEl.style.textShadow = '0 1px 4px rgba(0, 0, 0, 0.75)';
+          }
+          if (favIconEl) {
+            favIconEl.style.color = '#ffffff';
+            favIconEl.style.filter = 'drop-shadow(0 1px 3px rgba(0, 0, 0, 0.75))';
           }
         }
 
-        // 2. ホバーオーバーレイの背景＆文字色
+        // 2. PCホバーオーバーレイの背景＆文字色（作品名と名前のみ）
         const overlayEl = cardEl.querySelector('[data-role="hover-overlay"]');
         if (overlayEl) {
-          const editBtn = overlayEl.querySelector('[data-role="edit-btn"]');
           const subTexts = overlayEl.querySelectorAll('[data-role="sub-text"]');
           const mainTitle = overlayEl.querySelector('[data-role="main-title"]');
-          const memoText = overlayEl.querySelector('[data-role="memo-text"]');
-          const tagChips = overlayEl.querySelectorAll('[data-role="tag-chip"]');
 
           if (overallIsLight) {
-            // 明るい画像 → ライトすりガラス＋黒文字
-            overlayEl.style.backgroundColor = 'rgba(250, 250, 250, 0.88)';
+            overlayEl.style.backgroundColor = 'rgba(250, 250, 250, 0.86)';
             overlayEl.style.color = '#18181b';
-            if (editBtn) {
-              editBtn.className = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-mono-900/10 hover:bg-mono-900 text-mono-900 hover:text-white text-[11px] font-medium transition-colors';
-            }
             subTexts.forEach(el => {
               el.style.color = '#52525b';
             });
             if (mainTitle) {
               mainTitle.style.color = '#09090b';
             }
-            if (memoText) {
-              memoText.style.color = '#27272a';
-              memoText.style.borderColor = 'rgba(24, 24, 27, 0.15)';
-            }
-            tagChips.forEach(el => {
-              el.className = 'inline-block px-1.5 py-0.5 rounded bg-mono-900/10 hover:bg-mono-900 text-mono-700 hover:text-white font-mono text-[9px] sm:text-[10px] leading-none transition-colors';
-            });
           } else {
-            // 暗い画像 → ダークすりガラス＋白文字
-            overlayEl.style.backgroundColor = 'rgba(9, 9, 11, 0.85)';
+            overlayEl.style.backgroundColor = 'rgba(9, 9, 11, 0.84)';
             overlayEl.style.color = '#ffffff';
-            if (editBtn) {
-              editBtn.className = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/15 hover:bg-white text-white hover:text-mono-950 text-[11px] font-medium transition-colors';
-            }
             subTexts.forEach(el => {
               el.style.color = '#d4d4d8';
             });
             if (mainTitle) {
               mainTitle.style.color = '#ffffff';
             }
-            if (memoText) {
-              memoText.style.color = '#e4e4e7';
-              memoText.style.borderColor = 'rgba(255, 255, 255, 0.15)';
-            }
-            tagChips.forEach(el => {
-              el.className = 'inline-block px-1.5 py-0.5 rounded bg-white/15 hover:bg-white text-mono-200 hover:text-mono-950 font-mono text-[9px] sm:text-[10px] leading-none transition-colors';
-            });
           }
         }
       });
     }
 
-    // トーストメッセージ表示
     let toastTimer = null;
     function showToast(msg) {
       const toast = document.getElementById('toast');
@@ -1099,7 +1176,6 @@
       }, 2600);
     }
 
-    // サンプルデータの一括削除
     function clearSampleData() {
       characters = characters.filter(c => !c.isSample);
       saveCharacters();
@@ -1108,7 +1184,6 @@
       showToast('サンプルデータを削除しました');
     }
 
-    // 作品名サジェスト用datalistの動的生成
     function populateFilterOptions() {
       const seriesDatalist = document.getElementById('seriesSuggestions');
       if (!seriesDatalist) return;
@@ -1122,7 +1197,6 @@
       seriesDatalist.innerHTML = sortedSeries.map(s => `<option value="${escapeHtml(s)}">`).join('');
     }
 
-    // お気に入りフィルター切替
     function toggleFavoriteFilter() {
       filterFavoritesOnly = !filterFavoritesOnly;
       const btn = document.getElementById('favFilterBtn');
@@ -1142,16 +1216,13 @@
       applyFilters();
     }
 
-    // フィルタリング＆ソート実行と描画
     function applyFilters() {
       const query = document.getElementById('searchInput').value.trim().toLowerCase();
       const keyVal = document.getElementById('keyFilter').value;
       const sortVal = document.getElementById('sortSelect').value;
 
-      // クリアボタン表示制御
       document.getElementById('clearSearchBtn').classList.toggle('hidden', query === '');
 
-      // 指定Key数入力欄の表示制御
       const exactWrapper = document.getElementById('exactKeyWrapper');
       if (keyVal === 'exact') {
         exactWrapper.classList.remove('hidden');
@@ -1163,11 +1234,9 @@
 
       const exactKeyNum = parseInt(document.getElementById('exactKeyInput').value, 10) || 0;
 
-      // 条件リセットボタンの表示制御
       const isFiltered = query !== '' || filterFavoritesOnly || keyVal !== 'all';
       document.getElementById('resetFiltersBtn').classList.toggle('hidden', !isFiltered);
 
-      // 絞り込み
       let filtered = characters.filter(c => {
         if (filterFavoritesOnly && !c.isFavorite) return false;
 
@@ -1193,7 +1262,6 @@
         return true;
       });
 
-      // ソート
       filtered.sort((a, b) => {
         const keyA = Number(a.keyCount) || 0;
         const keyB = Number(b.keyCount) || 0;
@@ -1215,7 +1283,6 @@
         return 0;
       });
 
-      // 総キャラクター数 & 総Key数計算
       const totalKeys = filtered.reduce((sum, c) => sum + (Number(c.keyCount) || 0), 0);
       document.getElementById('resultCount').textContent = `${filtered.length} character${filtered.length === 1 ? '' : 's'}`;
       document.getElementById('totalKeysCount').textContent = `${totalKeys.toLocaleString()} key${totalKeys === 1 ? '' : 's'}`;
@@ -1233,7 +1300,6 @@
       renderGallery(filtered);
     }
 
-    // 絞り込み・検索条件の一括リセット
     function resetAllFilters() {
       document.getElementById('searchInput').value = '';
       document.getElementById('keyFilter').value = 'all';
@@ -1245,95 +1311,73 @@
       }
     }
 
-    // カードHTML生成ヘルパー（全カード縦長 3:4 統一・四隅シャープ・非ホバー時Key数下ハート・ホバー最下部タグ表示）
+    // カードHTML生成（PCホバー時は作品名と名前のみ・クリックで詳細ポップアップ表示・スマホはホバーなし）
     function createCharacterCardHtml(char) {
       const fallbackImg = `https://placehold.co/600x800/27272a/a1a1aa?text=${encodeURIComponent(char.nameRomaji || 'No+Image')}`;
       const imgSrc = char.image || fallbackImg;
       const bgHex = char.imageBgColor || '#fafafa';
-      const tx = typeof char.cropOffsetX === 'number' ? char.cropOffsetX : 0;
-      const ty = typeof char.cropOffsetY === 'number' ? char.cropOffsetY : 0;
-      const zoom = typeof char.cropZoom === 'number' ? char.cropZoom : 1;
+      const zoom = typeof char.imageZoom === 'number' ? char.imageZoom : 1;
+      const offsetX = typeof char.imageOffsetX === 'number' ? char.imageOffsetX : 0;
+      const offsetY = typeof char.imageOffsetY === 'number' ? char.imageOffsetY : 0;
 
-      const memoHtml = char.memo
-        ? `<p data-role="memo-text" class="mt-1.5 pt-1.5 border-t border-white/15 text-[11px] text-mono-200 leading-relaxed max-h-14 overflow-y-auto thin-scroll whitespace-pre-wrap">${escapeHtml(char.memo)}</p>`
-        : '';
-
-      // ホバー時最下部に表示するタグリスト
-      const tagsList = Array.isArray(char.tags) ? char.tags.filter(Boolean) : [];
-      const tagsHtml = tagsList.length > 0
-        ? `<div class="mt-2 flex flex-wrap gap-1">
-            ${tagsList.map(t => `<button type="button" data-role="tag-chip" onclick="event.stopPropagation(); filterByTagClick('${escapeJsStr(t)}')" class="inline-block px-1.5 py-0.5 rounded bg-white/15 hover:bg-white text-mono-200 hover:text-mono-950 font-mono text-[9px] sm:text-[10px] leading-none transition-colors">${escapeHtml(t)}</button>`).join('')}
+      // Favoriteキャラの非ホバー時ハートマーク（右上Key数の下に表示）
+      const nonHoverHeartHtml = char.isFavorite
+        ? `<div
+            data-role="card-fav-heart"
+            style="color: #ffffff; filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.75));"
+            class="char-fav-indicator absolute top-7 sm:top-8 right-2.5 sm:right-3 z-10 pointer-events-none"
+            title="Favorite"
+          >
+            <svg class="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current" viewBox="0 0 24 24">
+              <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
+            </svg>
           </div>`
-        : '';
-
-      // 非ホバー時にKey数の真下に表示するお気に入りハートマーク（ホバー時は非表示）
-      const staticHeartHtml = char.isFavorite
-        ? `<svg class="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current drop-shadow" viewBox="0 0 24 24" aria-label="Favorite">
-            <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
-          </svg>`
         : '';
 
       return `
         <article
           data-char-id="${escapeHtml(char.id)}"
-          style="background-color: ${escapeHtml(bgHex)}; --img-tx: ${tx}%; --img-ty: ${ty}%; --img-scale: ${zoom};"
-          class="char-card char-card--portrait shadow-xs border border-mono-200/70 select-none group"
-          onclick="toggleCardMobile(this)"
+          style="background-color: ${escapeHtml(bgHex)};"
+          class="char-card shadow-xs border border-mono-200/70 select-none group"
+          onclick="openDetailModal('${escapeJsStr(char.id)}')"
         >
-          <!-- キャラクター画像 -->
+          <!-- キャラクター画像（トリミング位置・ズーム反映） -->
           <img
             src="${escapeHtml(imgSrc)}"
             alt="${escapeHtml(char.nameRomaji)}"
             loading="lazy"
+            style="--img-tx: ${offsetX}%; --img-ty: ${offsetY}%; --img-scale: ${zoom};"
             onerror="this.onerror=null; this.src='${fallbackImg}';"
+            class="w-full h-full object-cover"
           />
 
-          <!-- 非ホバー時表示: 右上隅のKey数 & その真下のFavoriteハート（ホバー時は非表示） -->
+          <!-- 常時表示: 右上隅のKey数 -->
           <div
-            data-role="key-badge-group"
+            data-role="key-number"
             style="color: #ffffff; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.75);"
-            class="char-static-badges absolute top-2 right-2.5 sm:top-2.5 sm:right-3 z-10 flex flex-col items-end gap-1 pointer-events-none transition-colors"
+            class="absolute top-2 right-2.5 sm:top-2.5 sm:right-3 z-10 font-mono text-xs sm:text-sm font-semibold tracking-tight pointer-events-none transition-colors"
           >
-            <span class="font-mono text-xs sm:text-sm font-semibold tracking-tight leading-none">
-              ${Number(char.keyCount) || 0}
-            </span>
-            ${staticHeartHtml}
+            ${Number(char.keyCount) || 0}
           </div>
 
-          <!-- ホバー時（スマホはタップ時）表示: 登録詳細オーバーレイ（ハート表示なし・最下部にタグ表示） -->
+          <!-- 常時表示（PCホバー時のみ非表示）: Key数下のハートマーク -->
+          ${nonHoverHeartHtml}
+
+          <!-- PCホバー時のみ表示: 作品名と名前のみ -->
           <div
             data-role="hover-overlay"
-            class="char-overlay absolute inset-0 z-20 bg-mono-950/85 backdrop-blur-[2px] p-3 sm:p-4 flex flex-col justify-between text-white"
+            class="char-overlay absolute inset-0 z-20 bg-mono-950/84 backdrop-blur-[2px] p-3 sm:p-4 flex-col justify-end text-white"
           >
-            <!-- 上部: 編集ボタンのみ -->
-            <div class="flex items-center">
-              <button
-                type="button"
-                data-role="edit-btn"
-                onclick="event.stopPropagation(); openEditorModal('${escapeJsStr(char.id)}')"
-                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/15 hover:bg-white text-white hover:text-mono-950 text-[11px] font-medium transition-colors"
-              >
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
-                </svg>
-                <span>Edit</span>
-              </button>
-            </div>
-
-            <!-- 下部: 作品名・キャラ名・メモ・最下部にタグ -->
-            <div class="mt-auto">
+            <div>
               ${char.series ? `<p data-role="sub-text" class="text-[10px] sm:text-[11px] text-mono-300 tracking-wide truncate mb-0.5">${escapeHtml(char.series)}</p>` : ''}
               <h3 data-role="main-title" class="text-sm sm:text-base font-semibold leading-snug text-white tracking-tight">${escapeHtml(char.nameRomaji)}</h3>
               ${char.nameJp ? `<p data-role="sub-text" class="text-[11px] text-mono-300 leading-tight mt-0.5">${escapeHtml(char.nameJp)}</p>` : ''}
-              ${memoHtml}
-              ${tagsHtml}
             </div>
           </div>
         </article>
       `;
     }
 
-    // ギャラリー描画（【Favorites】セクション + 全キャラ一覧 ※すべて縦長統一）
     function renderGallery(list) {
       const favSection = document.getElementById('favoritesSection');
       const favGrid = document.getElementById('favoritesGrid');
@@ -1357,7 +1401,6 @@
 
       const favoriteList = list.filter(c => c.isFavorite);
 
-      // Favoritesセクションの描画（お気に入り絞り込み中でない、かつお気に入りキャラが存在する時）
       if (favoriteList.length > 0 && !filterFavoritesOnly) {
         favSection.classList.remove('hidden');
         favBadge.textContent = `${favoriteList.length}`;
@@ -1373,10 +1416,9 @@
         allHeader.classList.remove('flex');
       }
 
-      // 全キャラ一覧（こちらも縦長カードに統一）
+      // 全キャラ一覧（縦長カード・スマホ3列 / PC4列）
       grid.innerHTML = list.map(c => createCharacterCardHtml(c)).join('');
 
-      // 各カードの画像輝度を解析し、右上Key数/ハートとホバーテキスト色を最適化
       const charMap = new Map(list.map(c => [c.id, c]));
       document.querySelectorAll('.char-card[data-char-id]').forEach(cardEl => {
         const c = charMap.get(cardEl.getAttribute('data-char-id'));
@@ -1386,20 +1428,244 @@
       });
     }
 
-    // スマホ・タブレットでのタップによるオーバーレイ開閉
-    function toggleCardMobile(cardEl) {
-      const wasActive = cardEl.classList.contains('is-active');
-      document.querySelectorAll('.char-card.is-active').forEach(el => el.classList.remove('is-active'));
-      if (!wasActive) {
-        cardEl.classList.add('is-active');
+    // ==================== CHARACTER DETAIL POPUP MODAL ====================
+    function openDetailModal(id) {
+      const char = characters.find(c => c.id === id);
+      if (!char) return;
+
+      activeDetailCharId = char.id;
+      const fallbackImg = `https://placehold.co/600x800/27272a/a1a1aa?text=${encodeURIComponent(char.nameRomaji || 'No+Image')}`;
+      const imgSrc = char.image || fallbackImg;
+      const bgHex = char.imageBgColor || '#fafafa';
+      const zoom = typeof char.imageZoom === 'number' ? char.imageZoom : 1;
+      const offsetX = typeof char.imageOffsetX === 'number' ? char.imageOffsetX : 0;
+      const offsetY = typeof char.imageOffsetY === 'number' ? char.imageOffsetY : 0;
+
+      // ヘッダー情報
+      const headerSeries = document.getElementById('detailHeaderSeries');
+      headerSeries.textContent = char.series || char.nameRomaji || '';
+
+      const favBadge = document.getElementById('detailFavoriteBadge');
+      if (char.isFavorite) {
+        favBadge.classList.remove('hidden');
+        favBadge.classList.add('inline-flex');
+      } else {
+        favBadge.classList.add('hidden');
+        favBadge.classList.remove('inline-flex');
+      }
+
+      // 左側画像
+      const imgContainer = document.getElementById('detailImageContainer');
+      imgContainer.style.backgroundColor = bgHex;
+
+      const imgEl = document.getElementById('detailImage');
+      imgEl.onerror = function() {
+        this.onerror = null;
+        this.src = fallbackImg;
+      };
+      imgEl.src = imgSrc;
+      imgEl.alt = char.nameRomaji || '';
+      imgEl.style.transform = `translate(${offsetX}%, ${offsetY}%) scale(${zoom})`;
+      imgEl.style.transformOrigin = 'center center';
+
+      const keyNumEl = document.getElementById('detailKeyNumber');
+      keyNumEl.textContent = Number(char.keyCount) || 0;
+
+      const cardHeartEl = document.getElementById('detailCardHeart');
+      if (char.isFavorite) {
+        cardHeartEl.classList.remove('hidden');
+      } else {
+        cardHeartEl.classList.add('hidden');
+      }
+
+      // 画像輝度に応じたKey数＆ハート色調整
+      analyzeImageBrightness(imgSrc, bgHex, ({ topRightIsLight }) => {
+        if (topRightIsLight) {
+          keyNumEl.style.color = '#18181b';
+          keyNumEl.style.textShadow = '0 1px 3px rgba(255, 255, 255, 0.85)';
+          cardHeartEl.style.color = '#18181b';
+          cardHeartEl.style.filter = 'drop-shadow(0 1px 2px rgba(255, 255, 255, 0.85))';
+        } else {
+          keyNumEl.style.color = '#ffffff';
+          keyNumEl.style.textShadow = '0 1px 4px rgba(0, 0, 0, 0.75)';
+          cardHeartEl.style.color = '#ffffff';
+          cardHeartEl.style.filter = 'drop-shadow(0 1px 3px rgba(0, 0, 0, 0.75))';
+        }
+      });
+
+      // 右側テキスト情報
+      const seriesEl = document.getElementById('detailSeries');
+      if (char.series) {
+        seriesEl.textContent = char.series;
+        seriesEl.classList.remove('hidden');
+      } else {
+        seriesEl.textContent = '';
+        seriesEl.classList.add('hidden');
+      }
+
+      document.getElementById('detailNameRomaji').textContent = char.nameRomaji || '';
+
+      const nameJpEl = document.getElementById('detailNameJp');
+      if (char.nameJp) {
+        nameJpEl.textContent = char.nameJp;
+        nameJpEl.classList.remove('hidden');
+      } else {
+        nameJpEl.textContent = '';
+        nameJpEl.classList.add('hidden');
+      }
+
+      document.getElementById('detailKeyCountText').textContent = Number(char.keyCount) || 0;
+
+      // タグ一覧（クリックで検索フィルタ可能）
+      const tagsSec = document.getElementById('detailTagsSection');
+      const tagsList = document.getElementById('detailTagsList');
+      if (Array.isArray(char.tags) && char.tags.length > 0) {
+        tagsSec.classList.remove('hidden');
+        tagsList.innerHTML = char.tags.map(tag => `
+          <button
+            type="button"
+            onclick="filterByTagFromDetail('${escapeJsStr(tag)}')"
+            class="px-2 py-0.5 rounded-md bg-mono-100 hover:bg-mono-900 text-mono-700 hover:text-white font-mono text-[11px] transition-colors"
+            title="このタグで絞り込む"
+          >${escapeHtml(tag)}</button>
+        `).join('');
+      } else {
+        tagsSec.classList.add('hidden');
+        tagsList.innerHTML = '';
+      }
+
+      // メモ
+      const memoSec = document.getElementById('detailMemoSection');
+      const memoText = document.getElementById('detailMemoText');
+      if (char.memo && char.memo.trim()) {
+        memoSec.classList.remove('hidden');
+        memoText.textContent = char.memo;
+      } else {
+        memoSec.classList.add('hidden');
+        memoText.textContent = '';
+      }
+
+      // 鍵をゲットした日付履歴（W / ★ 表示付き）
+      const datesSec = document.getElementById('detailDatesSection');
+      const datesList = document.getElementById('detailDatesList');
+      const normalizedDates = normalizeKeyDates(char.keyDates);
+      const validDates = normalizedDates
+        .map((item, idx) => ({ ...item, index: idx + 1 }))
+        .filter(item => item.date || item.wishlist || item.starwish);
+
+      if (validDates.length > 0) {
+        datesSec.classList.remove('hidden');
+        datesList.innerHTML = validDates.map(item => `
+          <div class="flex items-center justify-between px-3 py-1.5 rounded-lg bg-mono-50 border border-mono-200/70 text-xs">
+            <div class="flex items-center gap-2 font-mono">
+              <span class="text-[11px] text-mono-400">#${item.index}</span>
+              <span class="text-mono-800">${item.date ? escapeHtml(item.date) : '日付未設定'}</span>
+            </div>
+            <div class="flex items-center gap-1">
+              ${item.wishlist ? '<span class="px-1.5 py-0.5 rounded bg-mono-900 text-white font-mono text-[10px] font-semibold" title="Wishlist">W</span>' : ''}
+              ${item.starwish ? '<span class="px-1.5 py-0.5 rounded bg-mono-900 text-white font-mono text-[10px] font-semibold" title="Starwish">★</span>' : ''}
+            </div>
+          </div>
+        `).join('');
+      } else {
+        datesSec.classList.add('hidden');
+        datesList.innerHTML = '';
+      }
+
+      const modal = document.getElementById('detailModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeDetailModal() {
+      const modal = document.getElementById('detailModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      activeDetailCharId = null;
+    }
+
+    function editFromDetailModal() {
+      const targetId = activeDetailCharId;
+      closeDetailModal();
+      if (targetId) {
+        openEditorModal(targetId);
       }
     }
 
-    // カード内のタグクリックで即座に検索バーへ反映して絞り込み
-    function filterByTagClick(tag) {
+    function filterByTagFromDetail(tag) {
+      closeDetailModal();
       const searchInput = document.getElementById('searchInput');
       searchInput.value = (searchInput.value.trim() === tag) ? '' : tag;
       applyFilters();
+    }
+
+    // ==================== SNS風 ドラッグ位置調整＆ズーム処理 ====================
+    function setupPreviewDragEvents() {
+      const container = document.getElementById('previewContainer');
+      if (!container) return;
+
+      container.addEventListener('pointerdown', (e) => {
+        if (!currentImageData) return;
+        isDraggingPreview = true;
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+        dragOriginOffsetX = currentImageOffsetX;
+        dragOriginOffsetY = currentImageOffsetY;
+        container.setPointerCapture(e.pointerId);
+      });
+
+      container.addEventListener('pointermove', (e) => {
+        if (!isDraggingPreview) return;
+        const rect = container.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+
+        const deltaXPct = ((e.clientX - dragStartX) / rect.width) * 100;
+        const deltaYPct = ((e.clientY - dragStartY) / rect.height) * 100;
+
+        currentImageOffsetX = clampOffset(dragOriginOffsetX + deltaXPct);
+        currentImageOffsetY = clampOffset(dragOriginOffsetY + deltaYPct);
+        applyPreviewImageTransform();
+      });
+
+      const endDrag = (e) => {
+        if (!isDraggingPreview) return;
+        isDraggingPreview = false;
+        try {
+          container.releasePointerCapture(e.pointerId);
+        } catch (_) {}
+      };
+
+      container.addEventListener('pointerup', endDrag);
+      container.addEventListener('pointercancel', endDrag);
+    }
+
+    function clampOffset(val) {
+      return Math.max(-75, Math.min(75, Math.round(val * 10) / 10));
+    }
+
+    function handleZoomChange(val) {
+      currentImageZoom = parseFloat(val) || 1;
+      const label = document.getElementById('imageZoomLabel');
+      if (label) label.textContent = `${currentImageZoom.toFixed(2)}x`;
+      applyPreviewImageTransform();
+    }
+
+    function resetImageTransform() {
+      currentImageZoom = 1;
+      currentImageOffsetX = 0;
+      currentImageOffsetY = 0;
+      const range = document.getElementById('imageZoomRange');
+      const label = document.getElementById('imageZoomLabel');
+      if (range) range.value = '1';
+      if (label) label.textContent = '1.00x';
+      applyPreviewImageTransform();
+    }
+
+    function applyPreviewImageTransform() {
+      const img = document.getElementById('imagePreview');
+      if (!img) return;
+      img.style.transform = `translate(${currentImageOffsetX}%, ${currentImageOffsetY}%) scale(${currentImageZoom})`;
+      img.style.transformOrigin = 'center center';
     }
 
     // ==================== MODAL: ADD & EDIT ====================
@@ -1414,9 +1680,7 @@
       currentFormFavorite = false;
       currentImageData = '';
       currentImageBgColor = '#fafafa';
-      currentCropOffsetX = 0;
-      currentCropOffsetY = 0;
-      currentCropZoom = 1;
+      resetImageTransform();
 
       const deleteBtn = document.getElementById('deleteCharBtn');
 
@@ -1432,22 +1696,23 @@
         document.getElementById('keyCount').value = kCount;
         document.getElementById('seriesName').value = target.series || '';
         document.getElementById('memoInput').value = target.memo || '';
-        document.getElementById('previewKeyNumber').textContent = kCount;
+        document.getElementById('previewKeyBadge').textContent = kCount;
 
         currentFormFavorite = Boolean(target.isFavorite);
         currentFormTags = Array.isArray(target.tags) ? [...target.tags] : [];
-        currentFormKeyDates = Array.isArray(target.keyDates)
-          ? target.keyDates.map(normalizeKeyDateEntry)
-          : [];
+        currentFormKeyDates = normalizeKeyDates(target.keyDates);
         syncKeyDatesLength(kCount);
         currentImageData = target.image || '';
-        currentCropOffsetX = typeof target.cropOffsetX === 'number' ? target.cropOffsetX : 0;
-        currentCropOffsetY = typeof target.cropOffsetY === 'number' ? target.cropOffsetY : 0;
-        currentCropZoom = typeof target.cropZoom === 'number' ? target.cropZoom : 1;
-        applyCropStylesToPreview();
         handleBgColorChange(target.imageBgColor || '#fafafa');
 
-        // データURLか外部URLかで初期タブを切り替え
+        // 保存済みのズーム・位置を復元
+        currentImageZoom = typeof target.imageZoom === 'number' ? target.imageZoom : 1;
+        currentImageOffsetX = typeof target.imageOffsetX === 'number' ? target.imageOffsetX : 0;
+        currentImageOffsetY = typeof target.imageOffsetY === 'number' ? target.imageOffsetY : 0;
+        document.getElementById('imageZoomRange').value = String(currentImageZoom);
+        document.getElementById('imageZoomLabel').textContent = `${currentImageZoom.toFixed(2)}x`;
+        applyPreviewImageTransform();
+
         if (currentImageData.startsWith('data:image')) {
           switchImageMode('file');
           setPreviewImage(currentImageData);
@@ -1462,10 +1727,9 @@
         document.getElementById('modalTitle').textContent = 'キャラクター登録';
         document.getElementById('charId').value = '';
         document.getElementById('keyCount').value = 1;
-        document.getElementById('previewKeyNumber').textContent = '1';
+        document.getElementById('previewKeyBadge').textContent = '1';
         currentFormFavorite = false;
-        currentFormKeyDates = [{ date: '', isWishlist: false, isStarwish: false }];
-        applyCropStylesToPreview();
+        currentFormKeyDates = [{ date: '', wishlist: false, starwish: false }];
         handleBgColorChange('#fafafa');
         switchImageMode('url');
         setPreviewImage('');
@@ -1487,7 +1751,6 @@
       modal.classList.remove('flex');
     }
 
-    // 画像入力モード切替（URL / ローカルファイル）
     function switchImageMode(mode) {
       currentImageMode = mode;
       const tabUrlBtn = document.getElementById('tabUrlBtn');
@@ -1517,7 +1780,6 @@
       setPreviewImage(currentImageData);
     }
 
-    // 画像背景色の変更＆プレビュー反映
     function handleBgColorChange(hex) {
       currentImageBgColor = hex || '#fafafa';
       const colorInput = document.getElementById('imageBgColorInput');
@@ -1531,7 +1793,6 @@
       updatePreviewKeyBadgeColor();
     }
 
-    // プレビュー枠の右上Key数＆ハート文字色を背景＋画像の明るさに合わせて更新
     function updatePreviewKeyBadgeColor() {
       const badge = document.getElementById('previewKeyBadge');
       if (!badge) return;
@@ -1549,141 +1810,39 @@
     function setPreviewImage(src) {
       const img = document.getElementById('imagePreview');
       const placeholder = document.getElementById('previewPlaceholder');
-      const guide = document.getElementById('cropGridGuide');
+      const dragHint = document.getElementById('previewDragHint');
       if (!img || !placeholder) return;
 
       if (src) {
         img.src = src;
         img.classList.remove('hidden');
         placeholder.classList.add('hidden');
-        if (guide) guide.classList.remove('hidden');
+        if (dragHint) dragHint.classList.remove('hidden');
+        applyPreviewImageTransform();
       } else {
         img.removeAttribute('src');
         img.classList.add('hidden');
         placeholder.classList.remove('hidden');
-        if (guide) guide.classList.add('hidden');
         placeholder.innerHTML = `<p class="text-xs text-mono-400">プレビュー</p>`;
+        if (dragHint) dragHint.classList.add('hidden');
       }
-      applyCropStylesToPreview();
       updatePreviewKeyBadgeColor();
-    }
-
-    // プレビュー画像の位置(%)・ズーム倍率をCSSに反映（保存後のカードと100%同一計算式）
-    function applyCropStylesToPreview() {
-      const img = document.getElementById('imagePreview');
-      const slider = document.getElementById('imageZoomSlider');
-      const zoomLabel = document.getElementById('cropZoomLabel');
-      if (img) {
-        img.style.transform = `translate(${currentCropOffsetX}%, ${currentCropOffsetY}%) scale(${currentCropZoom})`;
-      }
-      if (slider) {
-        slider.value = currentCropZoom;
-      }
-      if (zoomLabel) {
-        zoomLabel.textContent = `${currentCropZoom.toFixed(2)}x`;
-      }
-    }
-
-    function handleZoomSliderChange(val) {
-      currentCropZoom = Math.min(3, Math.max(1, parseFloat(val) || 1));
-      applyCropStylesToPreview();
-    }
-
-    function resetImageCrop() {
-      currentCropOffsetX = 0;
-      currentCropOffsetY = 0;
-      currentCropZoom = 1;
-      applyCropStylesToPreview();
-    }
-
-    // SNSプロフィール画像風のドラッグ位置調整（マウス＆スマホタッチ・ホイールズーム対応）
-    function initPreviewDragControls() {
-      const container = document.getElementById('previewContainer');
-      if (!container) return;
-
-      let isDragging = false;
-      let startX = 0;
-      let startY = 0;
-      let startOffsetX = 0;
-      let startOffsetY = 0;
-
-      const onPointerDown = (clientX, clientY) => {
-        if (!currentImageData) return;
-        isDragging = true;
-        startX = clientX;
-        startY = clientY;
-        startOffsetX = currentCropOffsetX;
-        startOffsetY = currentCropOffsetY;
-      };
-
-      const onPointerMove = (clientX, clientY) => {
-        if (!isDragging) return;
-        const rect = container.getBoundingClientRect();
-        if (!rect.width || !rect.height) return;
-
-        // プレビュー枠の幅・高さに対する割合(%)で移動量を記録するため、保存後のどの画面サイズのカードでも100%同じ位置になる
-        const deltaXPercent = ((clientX - startX) / rect.width) * 100;
-        const deltaYPercent = ((clientY - startY) / rect.height) * 100;
-
-        currentCropOffsetX = Math.min(80, Math.max(-80, startOffsetX + deltaXPercent));
-        currentCropOffsetY = Math.min(80, Math.max(-80, startOffsetY + deltaYPercent));
-        applyCropStylesToPreview();
-      };
-
-      const onPointerUp = () => {
-        isDragging = false;
-      };
-
-      // マウスドラッグ
-      container.addEventListener('mousedown', (e) => {
-        if (e.button !== 0) return;
-        e.preventDefault();
-        onPointerDown(e.clientX, e.clientY);
-      });
-      window.addEventListener('mousemove', (e) => {
-        if (!isDragging) return;
-        onPointerMove(e.clientX, e.clientY);
-      });
-      window.addEventListener('mouseup', onPointerUp);
-
-      // マウスホイールでの直感ズーム（PC用）
-      container.addEventListener('wheel', (e) => {
-        if (!currentImageData) return;
-        e.preventDefault();
-        const delta = e.deltaY < 0 ? 0.1 : -0.1;
-        currentCropZoom = Math.min(3, Math.max(1, Math.round((currentCropZoom + delta) * 100) / 100));
-        applyCropStylesToPreview();
-      }, { passive: false });
-
-      // スマホ・タッチスワイプ
-      container.addEventListener('touchstart', (e) => {
-        if (e.touches.length !== 1) return;
-        onPointerDown(e.touches[0].clientX, e.touches[0].clientY);
-      }, { passive: true });
-      container.addEventListener('touchmove', (e) => {
-        if (!isDragging || e.touches.length !== 1) return;
-        e.preventDefault();
-        onPointerMove(e.touches[0].clientX, e.touches[0].clientY);
-      }, { passive: false });
-      container.addEventListener('touchend', onPointerUp);
     }
 
     function handlePreviewError() {
       const img = document.getElementById('imagePreview');
       const placeholder = document.getElementById('previewPlaceholder');
-      const guide = document.getElementById('cropGridGuide');
+      const dragHint = document.getElementById('previewDragHint');
       if (!img || !placeholder) return;
 
-      // srcが空のときに発生するonerrorは無視
       if (!img.getAttribute('src')) return;
 
       img.classList.add('hidden');
-      if (guide) guide.classList.add('hidden');
       placeholder.classList.remove('hidden');
       placeholder.innerHTML = `<p class="text-xs text-mono-500">画像を読み込めませんでした</p>`;
+      if (dragHint) dragHint.classList.add('hidden');
     }
 
-    // ファイル選択時の自動リサイズ＆軽量保存（透過PNGの透明部分も保持）
     function handleFileSelect(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -1715,10 +1874,10 @@
           ctx.clearRect(0, 0, width, height);
           ctx.drawImage(tempImg, 0, 0, width, height);
 
-          // PNG/WebP/GIFは透過情報を保つためPNG形式で保存、それ以外はJPEGで軽量圧縮
           currentImageData = isTransparentType
             ? canvas.toDataURL('image/png')
             : canvas.toDataURL('image/jpeg', 0.85);
+          resetImageTransform();
           setPreviewImage(currentImageData);
         };
         tempImg.src = e.target.result;
@@ -1726,7 +1885,6 @@
       reader.readAsDataURL(file);
     }
 
-    // タグ追加・削除・描画処理
     function addTagFromInput() {
       const input = document.getElementById('tagInput');
       let raw = input.value.trim();
@@ -1774,7 +1932,6 @@
       `).join('');
     }
 
-    // お気に入りトグル（モーダル内＆プレビューハート同期）
     function toggleFormFavorite() {
       currentFormFavorite = !currentFormFavorite;
       updateModalFavoriteUI();
@@ -1784,7 +1941,6 @@
       const btn = document.getElementById('modalFavToggleBtn');
       const icon = document.getElementById('modalFavIcon');
       const label = document.getElementById('modalFavLabel');
-      const previewHeart = document.getElementById('previewFavHeart');
 
       if (currentFormFavorite) {
         btn.classList.add('bg-mono-900', 'border-mono-900');
@@ -1793,7 +1949,6 @@
         icon.classList.remove('text-mono-400');
         label.classList.add('text-white');
         label.classList.remove('text-mono-600');
-        if (previewHeart) previewHeart.classList.remove('hidden');
       } else {
         btn.classList.remove('bg-mono-900', 'border-mono-900');
         btn.classList.add('border-mono-200');
@@ -1801,14 +1956,13 @@
         icon.classList.add('text-mono-400');
         label.classList.remove('text-white');
         label.classList.add('text-mono-600');
-        if (previewHeart) previewHeart.classList.add('hidden');
       }
     }
 
     // Key数変更時にプレビューバッジと日付入力欄の数を同期
     function handleKeyCountChange(val) {
       const num = Math.max(0, parseInt(val, 10) || 0);
-      document.getElementById('previewKeyNumber').textContent = num;
+      document.getElementById('previewKeyBadge').textContent = num;
       syncKeyDatesLength(num);
       renderKeyDatesInputs();
     }
@@ -1816,21 +1970,20 @@
     function syncKeyDatesLength(targetCount) {
       const count = Math.min(Math.max(0, Number(targetCount) || 0), 50);
       while (currentFormKeyDates.length < count) {
-        currentFormKeyDates.push({ date: '', isWishlist: false, isStarwish: false });
+        currentFormKeyDates.push({ date: '', wishlist: false, starwish: false });
       }
-      // 末尾が空欄かつWishlist/Starwish未チェックの場合のみ余分な空枠を自動で詰める
       while (
         currentFormKeyDates.length > count &&
         currentFormKeyDates[currentFormKeyDates.length - 1].date === '' &&
-        !currentFormKeyDates[currentFormKeyDates.length - 1].isWishlist &&
-        !currentFormKeyDates[currentFormKeyDates.length - 1].isStarwish
+        !currentFormKeyDates[currentFormKeyDates.length - 1].wishlist &&
+        !currentFormKeyDates[currentFormKeyDates.length - 1].starwish
       ) {
         currentFormKeyDates.pop();
       }
     }
 
     function addKeyDateRow() {
-      currentFormKeyDates.push({ date: '', isWishlist: false, isStarwish: false });
+      currentFormKeyDates.push({ date: '', wishlist: false, starwish: false });
       renderKeyDatesInputs();
     }
 
@@ -1839,15 +1992,15 @@
       currentFormKeyDates[index].date = value;
     }
 
-    function toggleKeyDateWishlistAt(index) {
+    function toggleKeyDateWishlist(index) {
       if (!currentFormKeyDates[index]) return;
-      currentFormKeyDates[index].isWishlist = !currentFormKeyDates[index].isWishlist;
+      currentFormKeyDates[index].wishlist = !currentFormKeyDates[index].wishlist;
       renderKeyDatesInputs();
     }
 
-    function toggleKeyDateStarwishAt(index) {
+    function toggleKeyDateStarwish(index) {
       if (!currentFormKeyDates[index]) return;
-      currentFormKeyDates[index].isStarwish = !currentFormKeyDates[index].isStarwish;
+      currentFormKeyDates[index].starwish = !currentFormKeyDates[index].starwish;
       renderKeyDatesInputs();
     }
 
@@ -1864,12 +2017,13 @@
       }
 
       container.innerHTML = currentFormKeyDates.map((item, idx) => {
-        const entry = normalizeKeyDateEntry(item);
-        const wBtnClass = entry.isWishlist
-          ? 'bg-mono-900 text-white border-mono-900 shadow-2xs'
+        const isW = Boolean(item.wishlist);
+        const isStar = Boolean(item.starwish);
+        const wBtnClass = isW
+          ? 'bg-mono-900 text-white border-mono-900 font-semibold'
           : 'bg-white text-mono-400 border-mono-200 hover:border-mono-400 hover:text-mono-700';
-        const sBtnClass = entry.isStarwish
-          ? 'bg-mono-900 text-white border-mono-900 shadow-2xs'
+        const starBtnClass = isStar
+          ? 'bg-mono-900 text-white border-mono-900 font-semibold'
           : 'bg-white text-mono-400 border-mono-200 hover:border-mono-400 hover:text-mono-700';
 
         return `
@@ -1877,30 +2031,30 @@
             <span class="w-14 shrink-0 font-mono text-[11px] text-mono-500">${idx + 1}つめ:</span>
             <input
               type="date"
-              value="${escapeHtml(entry.date)}"
+              value="${escapeHtml(item.date)}"
               onchange="updateKeyDateAt(${idx}, this.value)"
-              class="flex-1 min-w-0 px-2.5 py-1 text-xs font-mono bg-mono-50 border border-mono-200 rounded-md text-mono-900 focus:outline-none focus:bg-white focus:border-mono-500"
+              class="flex-1 min-w-0 px-2 py-1 text-xs font-mono bg-mono-50 border border-mono-200 rounded-md text-mono-900 focus:outline-none focus:bg-white focus:border-mono-500"
             />
             <button
               type="button"
-              onclick="toggleKeyDateWishlistAt(${idx})"
-              title="${entry.isWishlist ? 'Wishlist入り（ON）' : 'Wishlist外（OFF）'}"
-              class="w-7 h-7 shrink-0 rounded-md border font-mono text-xs font-semibold flex items-center justify-center transition-colors ${wBtnClass}"
+              onclick="toggleKeyDateWishlist(${idx})"
+              title="Wishlistに入っていたか切り替え"
+              class="w-7 h-6 shrink-0 rounded-md border font-mono text-[11px] flex items-center justify-center transition-colors ${wBtnClass}"
             >
               W
             </button>
             <button
               type="button"
-              onclick="toggleKeyDateStarwishAt(${idx})"
-              title="${entry.isStarwish ? 'Starwish入り（ON）' : 'Starwish外（OFF）'}"
-              class="w-7 h-7 shrink-0 rounded-md border text-xs font-semibold flex items-center justify-center transition-colors ${sBtnClass}"
+              onclick="toggleKeyDateStarwish(${idx})"
+              title="Starwishに入っていたか切り替え"
+              class="w-7 h-6 shrink-0 rounded-md border font-mono text-[11px] flex items-center justify-center transition-colors ${starBtnClass}"
             >
               ★
             </button>
             <button
               type="button"
               onclick="removeKeyDateRow(${idx})"
-              class="p-1 text-mono-400 hover:text-mono-800 text-xs"
+              class="p-1 text-mono-400 hover:text-mono-800 text-xs shrink-0"
               title="この行を削除"
             >&times;</button>
           </div>
@@ -1933,11 +2087,9 @@
         `).join('');
     }
 
-    // 保存処理
     function handleSaveCharacter(event) {
       event.preventDefault();
 
-      // タグ入力欄に未確定の文字があれば自動追加
       if (document.getElementById('tagInput').value.trim()) {
         addTagFromInput();
       }
@@ -1948,7 +2100,11 @@
       const keyCount = Math.max(0, parseInt(document.getElementById('keyCount').value, 10) || 0);
       const series = document.getElementById('seriesName').value.trim();
       const memo = document.getElementById('memoInput').value.trim();
-      const cleanedKeyDates = currentFormKeyDates.map(normalizeKeyDateEntry);
+      const cleanedKeyDates = currentFormKeyDates.map(item => ({
+        date: item.date || '',
+        wishlist: Boolean(item.wishlist),
+        starwish: Boolean(item.starwish)
+      }));
 
       if (!nameRomaji) {
         showToast('ローマ字表記の名前を入力してください');
@@ -1972,9 +2128,9 @@
             memo,
             image: imageToSave,
             imageBgColor: currentImageBgColor,
-            cropOffsetX: Math.round(currentCropOffsetX * 10) / 10,
-            cropOffsetY: Math.round(currentCropOffsetY * 10) / 10,
-            cropZoom: currentCropZoom,
+            imageZoom: currentImageZoom,
+            imageOffsetX: currentImageOffsetX,
+            imageOffsetY: currentImageOffsetY,
             isSample: false
           };
         }
@@ -1992,9 +2148,9 @@
           memo,
           image: imageToSave,
           imageBgColor: currentImageBgColor,
-          cropOffsetX: Math.round(currentCropOffsetX * 10) / 10,
-          cropOffsetY: Math.round(currentCropOffsetY * 10) / 10,
-          cropZoom: currentCropZoom,
+          imageZoom: currentImageZoom,
+          imageOffsetX: currentImageOffsetX,
+          imageOffsetY: currentImageOffsetY,
           isSample: false,
           createdAt: Date.now()
         };
@@ -2008,7 +2164,6 @@
       closeEditorModal();
     }
 
-    // 削除確認フロー
     function requestDeleteCharacter() {
       document.getElementById('deleteCharBtn').classList.add('hidden');
       const box = document.getElementById('deleteConfirmBox');
@@ -2089,7 +2244,6 @@
       reader.readAsText(file);
     }
 
-    // エスケープ用ユーティリティ
     function escapeHtml(str) {
       if (str === null || str === undefined) return '';
       return String(str)
@@ -2102,7 +2256,7 @@
 
     function escapeJsStr(str) {
       if (str === null || str === undefined) return '';
-      return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+      return String(str).replace(/\/g, '\\').replace(/'/g, "\'");
     }
   </script>
 </body>
