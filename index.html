@@ -46,21 +46,41 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Favoritesグリッド: スマホ2カラム / PC(md以上)3カラム・間隔16px・縦長 */
+    /* Favorites横スライダー: 3キャラ以上で横方向にスクロール */
     .favorites-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      display: flex;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scroll-behavior: smooth;
       gap: 10px;
+      padding-bottom: 6px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .favorites-grid .char-card {
+      flex: 0 0 calc((100% - 10px) / 2);
+      scroll-snap-align: start;
     }
 
     @media (min-width: 768px) {
-      .favorites-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 10px;
+      .favorites-grid .char-card {
+        flex: 0 0 calc((100% - 20px) / 3);
       }
     }
 
-    /* メイン全キャラグリッド: スマホ3カラム / PC(md以上)4カラム・間隔16px・縦長 */
+    .favorites-grid::-webkit-scrollbar {
+      height: 4px;
+    }
+    .favorites-grid::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .favorites-grid::-webkit-scrollbar-thumb {
+      background: rgba(161, 161, 170, 0.4);
+      border-radius: 9999px;
+    }
+
+    /* メイン全キャラグリッド: スマホ3カラム / PC(md以上)5カラム・縦長 2:3 */
     .collection-grid {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -69,18 +89,19 @@
 
     @media (min-width: 768px) {
       .collection-grid {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(5, minmax(0, 1fr));
         gap: 10px;
       }
     }
 
-    /* カードの共通スタイル（全カード縦長 3:4・四隅シャープ・クリックで詳細ポップアップ） */
+    /* カードの共通スタイル（全カード縦長 2:3・クリックで詳細ポップアップ） */
     .char-card {
       position: relative;
       overflow: hidden;
       background-color: #e4e4e7;
       aspect-ratio: 2 / 3;
       cursor: pointer;
+      border-radius: 2%;
     }
 
     .char-card img {
@@ -89,7 +110,26 @@
       --img-scale: 1;
       transform: translate(var(--img-tx), var(--img-ty)) scale(var(--img-scale));
       transform-origin: center center;
-      transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), filter 0.4s ease;
+      transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1), filter 0.35s ease;
+    }
+
+    /* 検索・絞り込みアコーディオンのスムーズ開閉 */
+    .filter-drawer {
+      display: grid;
+      grid-template-rows: 0fr;
+      opacity: 0;
+      transition: grid-template-rows 0.32s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease, margin-top 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+      margin-top: 0;
+    }
+
+    .filter-drawer.is-open {
+      grid-template-rows: 1fr;
+      opacity: 1;
+      margin-top: 12px;
+    }
+
+    .filter-drawer-inner {
+      overflow: hidden;
     }
 
     /* ホバー機能はマウス操作可能なデバイス（PC等）のみで有効化し、スマホでは無効化 */
@@ -99,7 +139,8 @@
 
     @media (hover: hover) and (pointer: fine) {
       .char-card:hover img {
-        transform: translate(var(--img-tx), var(--img-ty)) scale(calc(var(--img-scale) * 1.04));
+        transform: translate(var(--img-tx), var(--img-ty)) scale(calc(var(--img-scale) * 1.05));
+        filter: blur(4px);
       }
 
       .char-overlay {
@@ -112,14 +153,6 @@
       .char-card:hover .char-overlay {
         opacity: 1;
       }
-
-      .char-card:hover .char-fav-indicator {
-        opacity: 0;
-      }
-    }
-
-    .char-fav-indicator {
-      transition: opacity 0.2s ease;
     }
 
     /* カスタムスクロールバー */
@@ -171,111 +204,24 @@
   </header>
 
   <!-- ==================== FILTER & SORT BAR ==================== -->
-  <section class="max-w-6xl w-full mx-auto px-4 sm:px-8 pt-6 pb-4">
-    <div class="flex flex-col gap-3">
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5">
-        <!-- キーワード検索 -->
-        <div class="lg:col-span-5 relative">
-          <svg class="w-4 h-4 text-mono-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-          </svg>
-          <input
-            id="searchInput"
-            type="text"
-            placeholder="名前・作品・タグ・メモで検索..."
-            class="w-full pl-9 pr-8 py-2 text-xs sm:text-sm bg-white border border-mono-200 rounded-lg text-mono-900 placeholder-mono-400 focus:outline-none focus:border-mono-500 transition-colors"
-            oninput="applyFilters()"
-          />
-          <button
-            id="clearSearchBtn"
-            type="button"
-            onclick="document.getElementById('searchInput').value=''; applyFilters();"
-            class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-mono-400 hover:text-mono-700 p-0.5"
-          >
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-            </svg>
-          </button>
+  <section class="max-w-6xl w-full mx-auto px-4 sm:px-8 pt-5 pb-3">
+    <!-- 常時表示バー: 総キャラ数・総key数 ＋ Filter/Sort開閉ボタン -->
+    <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-mono-500">
+      <div class="flex flex-wrap items-center gap-3">
+        <div class="flex items-center gap-2 font-mono text-mono-700">
+          <span id="resultCount">0 characters</span>
+          <span class="text-mono-300">/</span>
+          <span id="totalKeysCount">0 keys</span>
         </div>
 
-        <!-- お気に入り絞り込みトグル -->
-        <div class="lg:col-span-2">
-          <button
-            id="favFilterBtn"
-            type="button"
-            onclick="toggleFavoriteFilter()"
-            class="w-full h-full px-3 py-2 text-xs sm:text-sm bg-white border border-mono-200 rounded-lg text-mono-700 hover:border-mono-400 flex items-center justify-center gap-1.5 transition-colors"
-          >
-            <svg id="favFilterIcon" class="w-3.5 h-3.5 text-mono-400 transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
-            </svg>
-            <span>Favorites</span>
-          </button>
-        </div>
-
-        <!-- Key数で絞り込み -->
-        <div class="lg:col-span-2">
-          <select
-            id="keyFilter"
-            onchange="applyFilters()"
-            title="Key数で絞り込み"
-            class="w-full px-3 py-2 text-xs sm:text-sm font-mono bg-white border border-mono-200 rounded-lg text-mono-700 focus:outline-none focus:border-mono-500 transition-colors"
-          >
-            <option value="all">Key: All</option>
-            <option value="1">Key: 1+</option>
-            <option value="3">Key: 3+</option>
-            <option value="5">Key: 5+</option>
-            <option value="10">Key: 10+</option>
-            <option value="exact">Key: 指定数...</option>
-          </select>
-        </div>
-
-        <!-- 並び替え -->
-        <div class="lg:col-span-3">
-          <select
-            id="sortSelect"
-            onchange="applyFilters()"
-            class="w-full px-3 py-2 text-xs sm:text-sm bg-white border border-mono-200 rounded-lg text-mono-700 focus:outline-none focus:border-mono-500 transition-colors"
-          >
-            <option value="key_desc">Key数が多い順</option>
-            <option value="key_asc">Key数が少ない順</option>
-            <option value="newest">登録が新しい順</option>
-            <option value="oldest">登録が古い順</option>
-            <option value="name_asc">名前順 (A-Z)</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- ステータスバー -->
-      <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-mono-500 pt-1">
-        <div class="flex flex-wrap items-center gap-3">
-          <div class="flex items-center gap-2 font-mono">
-            <span id="resultCount">0 characters</span>
-            <span class="text-mono-300">/</span>
-            <span id="totalKeysCount">0 keys</span>
-          </div>
-
-          <div id="exactKeyWrapper" class="hidden items-center gap-1.5">
-            <label for="exactKeyInput" class="text-mono-500">Key数 =</label>
-            <input
-              id="exactKeyInput"
-              type="number"
-              min="0"
-              value="1"
-              oninput="applyFilters()"
-              class="w-16 px-2 py-0.5 font-mono text-xs bg-white border border-mono-300 rounded text-mono-900 focus:outline-none focus:border-mono-600"
-            />
-          </div>
-
-          <button
-            id="resetFiltersBtn"
-            type="button"
-            onclick="resetAllFilters()"
-            class="hidden text-mono-500 hover:text-mono-900 underline underline-offset-2 transition-colors"
-          >
-            条件をリセット
-          </button>
-        </div>
+        <button
+          id="resetFiltersBtn"
+          type="button"
+          onclick="resetAllFilters()"
+          class="hidden text-mono-500 hover:text-mono-900 underline underline-offset-2 transition-colors"
+        >
+          条件をリセット
+        </button>
 
         <div id="sampleNotice" class="hidden items-center gap-2 text-mono-400">
           <span>※サンプル表示中</span>
@@ -288,14 +234,123 @@
           </button>
         </div>
       </div>
+
+      <button
+        id="toggleFilterDrawerBtn"
+        type="button"
+        onclick="toggleFilterDrawer()"
+        aria-expanded="false"
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-mono-700 hover:text-mono-950 bg-white border border-mono-200 hover:border-mono-400 rounded-lg transition-colors"
+      >
+        <svg class="w-3.5 h-3.5 text-mono-500" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
+        </svg>
+        <span>Filter &amp; Sort</span>
+        <span id="filterActiveDot" class="hidden w-1.5 h-1.5 rounded-full bg-mono-900"></span>
+        <svg id="filterDrawerChevron" class="w-3.5 h-3.5 text-mono-400 transition-transform duration-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- 折りたたみ検索・絞り込みパネル -->
+    <div id="filterDrawer" class="filter-drawer">
+      <div class="filter-drawer-inner">
+        <div class="p-3 bg-white border border-mono-200 rounded-xl shadow-2xs space-y-2.5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5">
+            <!-- キーワード検索 -->
+            <div class="lg:col-span-5 relative">
+              <svg class="w-4 h-4 text-mono-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+              </svg>
+              <input
+                id="searchInput"
+                type="text"
+                placeholder="名前・作品・タグ・メモで検索..."
+                class="w-full pl-9 pr-8 py-2 text-xs sm:text-sm bg-mono-50 border border-mono-200 rounded-lg text-mono-900 placeholder-mono-400 focus:outline-none focus:bg-white focus:border-mono-500 transition-colors"
+                oninput="applyFilters()"
+              />
+              <button
+                id="clearSearchBtn"
+                type="button"
+                onclick="document.getElementById('searchInput').value=''; applyFilters();"
+                class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-mono-400 hover:text-mono-700 p-0.5"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <!-- お気に入り絞り込みトグル -->
+            <div class="lg:col-span-2">
+              <button
+                id="favFilterBtn"
+                type="button"
+                onclick="toggleFavoriteFilter()"
+                class="w-full h-full px-3 py-2 text-xs sm:text-sm bg-mono-50 border border-mono-200 rounded-lg text-mono-700 hover:border-mono-400 flex items-center justify-center gap-1.5 transition-colors"
+              >
+                <svg id="favFilterIcon" class="w-3.5 h-3.5 text-mono-400 transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
+                </svg>
+                <span>Favorites</span>
+              </button>
+            </div>
+
+            <!-- Key数で絞り込み -->
+            <div class="lg:col-span-2">
+              <select
+                id="keyFilter"
+                onchange="applyFilters()"
+                title="Key数で絞り込み"
+                class="w-full px-3 py-2 text-xs sm:text-sm font-mono bg-mono-50 border border-mono-200 rounded-lg text-mono-700 focus:outline-none focus:bg-white focus:border-mono-500 transition-colors"
+              >
+                <option value="all">Key: All</option>
+                <option value="1">Key: 1+</option>
+                <option value="3">Key: 3+</option>
+                <option value="5">Key: 5+</option>
+                <option value="10">Key: 10+</option>
+                <option value="exact">Key: 指定数...</option>
+              </select>
+            </div>
+
+            <!-- 並び替え -->
+            <div class="lg:col-span-3">
+              <select
+                id="sortSelect"
+                onchange="applyFilters()"
+                class="w-full px-3 py-2 text-xs sm:text-sm bg-mono-50 border border-mono-200 rounded-lg text-mono-700 focus:outline-none focus:bg-white focus:border-mono-500 transition-colors"
+              >
+                <option value="newest">登録が新しい順</option>
+                <option value="oldest">登録が古い順</option>
+                <option value="key_desc">Key数が多い順</option>
+                <option value="key_asc">Key数が少ない順</option>
+                <option value="name_asc">名前順 (A-Z)</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="exactKeyWrapper" class="hidden items-center gap-2 text-xs pt-0.5">
+            <label for="exactKeyInput" class="text-mono-500">指定Key数 =</label>
+            <input
+              id="exactKeyInput"
+              type="number"
+              min="0"
+              value="1"
+              oninput="applyFilters()"
+              class="w-20 px-2.5 py-1 font-mono text-xs bg-mono-50 border border-mono-300 rounded-md text-mono-900 focus:outline-none focus:bg-white focus:border-mono-600"
+            />
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
   <!-- ==================== MAIN GALLERY ==================== -->
-  <main class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-8 pt-2 pb-16 space-y-14">
-    <!-- 【Favorites】セクション -->
+  <main class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-8 pt-2 pb-16 space-y-12">
+    <!-- 【Favorites】横スライダーセクション -->
     <section id="favoritesSection" class="hidden">
-      <div class="flex items-center justify-between mb-6 pb-2.5 border-b border-mono-200">
+      <div class="flex items-center justify-between mb-4 pb-2 border-b border-mono-200">
         <div class="flex items-center gap-2">
           <svg class="w-3.5 h-3.5 text-mono-900 fill-mono-900" viewBox="0 0 24 24">
             <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
@@ -309,7 +364,7 @@
 
     <!-- 全キャラ一覧セクション -->
     <section id="allCharactersSection">
-      <div id="allCharactersHeader" class="hidden items-center justify-between mb-6 pb-2.5 border-b border-mono-200">
+      <div id="allCharactersHeader" class="hidden items-center justify-between mb-5 pb-2 border-b border-mono-200">
         <h2 class="text-xs font-mono uppercase tracking-widest text-mono-500 font-medium">All Characters</h2>
       </div>
       <div id="galleryGrid" class="collection-grid"></div>
@@ -335,17 +390,9 @@
     onclick="if(event.target === this) closeDetailModal()"
   >
     <div class="bg-white border border-mono-200 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden my-auto">
+      <!-- ポップアップ上部: 左側にEditボタン（＋Favoriteバッジ）、右側に閉じるボタン -->
       <div class="px-5 sm:px-6 py-3.5 border-b border-mono-100 flex items-center justify-between gap-3">
-        <div class="flex items-center gap-2 min-w-0">
-          <span id="detailFavoriteBadge" class="hidden items-center justify-center w-6 h-6 rounded-full bg-mono-900 text-white shrink-0" title="Favorite">
-            <svg class="w-3 h-3 fill-white" viewBox="0 0 24 24">
-              <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
-            </svg>
-          </span>
-          <span id="detailHeaderSeries" class="text-xs text-mono-500 truncate"></span>
-        </div>
-
-        <div class="flex items-center gap-2 shrink-0">
+        <div class="flex items-center gap-2">
           <button
             type="button"
             id="detailEditBtn"
@@ -358,48 +405,39 @@
             <span>Edit</span>
           </button>
 
-          <button
-            type="button"
-            onclick="closeDetailModal()"
-            class="p-1.5 text-mono-400 hover:text-mono-900 rounded-lg transition-colors"
-            title="閉じる"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+          <span id="detailFavoriteBadge" class="hidden items-center justify-center w-7 h-7 rounded-full bg-mono-900 text-white shrink-0" title="Favorite">
+            <svg class="w-3.5 h-3.5 fill-white" viewBox="0 0 24 24">
+              <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
             </svg>
-          </button>
+          </span>
         </div>
+
+        <button
+          type="button"
+          onclick="closeDetailModal()"
+          class="p-1.5 text-mono-400 hover:text-mono-900 rounded-lg transition-colors"
+          title="閉じる"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
 
       <div class="p-5 sm:p-6 max-h-[82vh] overflow-y-auto thin-scroll">
         <div class="grid grid-cols-1 sm:grid-cols-12 gap-5 sm:gap-6 items-start">
-          <div class="sm:col-span-5 max-w-[240px] sm:max-w-none w-full mx-auto">
+          <!-- スマホ版は画像サイズをコンパクト（max-w-[165px]）に調整、アスペクト比 2:3、画像上のkey数・ハート表示なし -->
+          <div class="sm:col-span-5 max-w-[165px] sm:max-w-none w-full mx-auto">
             <div
               id="detailImageContainer"
               style="background-color: #fafafa;"
-              class="relative w-full aspect-[3/4] overflow-hidden border border-mono-200"
+              class="relative w-full aspect-[2/3] overflow-hidden border border-mono-200 rounded-[2%]"
             >
               <img
                 id="detailImage"
                 alt=""
-                class="w-full h-full object-cover"
+                class="w-full h-full object-contain"
               />
-              <div
-                id="detailKeyNumber"
-                style="color: #ffffff; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.75);"
-                class="absolute top-2.5 right-3 z-10 font-mono text-sm font-semibold tracking-tight pointer-events-none"
-              >
-                0
-              </div>
-              <div
-                id="detailCardHeart"
-                style="color: #ffffff; filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.75));"
-                class="hidden absolute top-8 right-3 z-10 pointer-events-none"
-              >
-                <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                  <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
-                </svg>
-              </div>
             </div>
           </div>
 
@@ -529,13 +567,14 @@
             <div
               id="previewContainer"
               style="background-color: #fafafa;"
-              class="relative w-full aspect-[3/4] overflow-hidden border border-mono-200 flex items-center justify-center transition-colors select-none touch-none"
+              class="relative w-full aspect-[2/3] overflow-hidden border border-mono-200 rounded-[2%] flex items-center justify-center transition-colors select-none touch-none"
             >
               <img
                 id="imagePreview"
                 alt="Preview"
                 draggable="false"
-                class="hidden w-full h-full object-cover cursor-grab active:cursor-grabbing select-none"
+                class="hidden w-full h-full object-contain cursor-grab active:cursor-grabbing select-none"
+                onload="handlePreviewImageLoad()"
                 onerror="handlePreviewError()"
               />
               <div id="previewPlaceholder" class="text-center p-4 pointer-events-none">
@@ -544,15 +583,14 @@
 
               <div
                 id="previewDragHint"
-                class="hidden absolute bottom-2 left-2 px-2 py-0.5 rounded bg-black/55 text-white text-[10px] font-mono pointer-events-none backdrop-blur-2xs"
+                class="hidden absolute top-2 left-2 px-2 py-0.5 rounded bg-black/50 text-white text-[10px] font-mono pointer-events-none backdrop-blur-xs"
               >
                 Drag to move
               </div>
 
               <span
                 id="previewKeyBadge"
-                style="color: #ffffff; text-shadow: 0 1px 4px rgba(0,0,0,0.65);"
-                class="absolute top-2.5 right-3 font-mono text-sm font-semibold pointer-events-none transition-colors"
+                class="absolute bottom-2 right-2 px-2 py-0.5 rounded-md bg-black/45 backdrop-blur-md border border-white/15 text-white font-mono text-xs font-semibold pointer-events-none"
               >
                 1
               </span>
@@ -843,7 +881,7 @@
   <!-- ==================== JAVASCRIPT LOGIC ==================== -->
   <script>
     const STORAGE_KEY = 'mudae_my_key_collection_v1';
-
+    const CARD_ASPECT_RATIO = 2 / 3;
     const SAMPLE_DATA = [
       {
         id: 'sample_1',
@@ -919,17 +957,17 @@
     let currentImageBgColor = '#fafafa';
     let currentImageMode = 'url';
     let activeDetailCharId = null;
+    let isFilterDrawerOpen = false;
 
     let currentImageZoom = 1;
     let currentImageOffsetX = 0;
     let currentImageOffsetY = 0;
+    let currentImageAspectRatio = CARD_ASPECT_RATIO;
     let isDraggingPreview = false;
     let dragStartX = 0;
     let dragStartY = 0;
     let dragOriginOffsetX = 0;
     let dragOriginOffsetY = 0;
-
-    const luminanceCache = new Map();
 
     function normalizeKeyDates(rawDates) {
       if (!Array.isArray(rawDates)) return [];
@@ -991,153 +1029,53 @@
       }
     }
 
-    function hexToRgb(hex) {
-      const clean = (hex || '#fafafa').replace('#', '');
-      const full = clean.length === 3
-        ? clean.split('').map(ch => ch + ch).join('')
-        : clean.padEnd(6, 'f');
-      const num = parseInt(full, 16);
-      return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
-    }
+    // ==================== 画像フレーミング境界計算（はみ出し防止） ====================
+    function getMaxAllowedOffsets(imgAspectRatio, zoom) {
+      const z = Math.max(1, Number(zoom) || 1);
+      const ratio = (imgAspectRatio && imgAspectRatio > 0) ? imgAspectRatio : CARD_ASPECT_RATIO;
 
-    function getRgbLuminance(r, g, b) {
-      return 0.299 * r + 0.587 * g + 0.114 * b;
-    }
-
-    function analyzeImageBrightness(src, bgColorHex, callback) {
-      const bgHex = bgColorHex || '#fafafa';
-      const [bgR, bgG, bgB] = hexToRgb(bgHex);
-      const bgLum = getRgbLuminance(bgR, bgG, bgB);
-      const defaultResult = {
-        overallIsLight: bgLum > 145,
-        topRightIsLight: bgLum > 155
-      };
-
-      if (!src) {
-        callback(defaultResult);
-        return;
+      // object-contain で 2:3 枠内に収まる基準サイズ（%）を計算
+      let baseWidthPct = 100;
+      let baseHeightPct = 100;
+      if (ratio > CARD_ASPECT_RATIO) {
+        // 横長寄りの画像: 幅が100%にフィットし、高さは比率に応じて縮む
+        baseHeightPct = (CARD_ASPECT_RATIO / ratio) * 100;
+      } else if (ratio < CARD_ASPECT_RATIO) {
+        // より縦長の画像: 高さが100%にフィットし、幅は比率に応じて縮む
+        baseWidthPct = (ratio / CARD_ASPECT_RATIO) * 100;
       }
 
-      const cacheKey = `${src.slice(0, 120)}_${src.length}_${bgHex}`;
-      if (luminanceCache.has(cacheKey)) {
-        callback(luminanceCache.get(cacheKey));
-        return;
-      }
+      const maxOffsetX = Math.max(0, (baseWidthPct * z - 100) / 2);
+      const maxOffsetY = Math.max(0, (baseHeightPct * z - 100) / 2);
 
-      const img = new Image();
-      if (!src.startsWith('data:')) {
-        img.crossOrigin = 'Anonymous';
-      }
-
-      img.onload = function() {
-        try {
-          const sampleW = 64;
-          const sampleH = 64;
-          const canvas = document.createElement('canvas');
-          canvas.width = sampleW;
-          canvas.height = sampleH;
-          const ctx = canvas.getContext('2d');
-
-          ctx.fillStyle = bgHex;
-          ctx.fillRect(0, 0, sampleW, sampleH);
-          ctx.drawImage(img, 0, 0, sampleW, sampleH);
-
-          const data = ctx.getImageData(0, 0, sampleW, sampleH).data;
-
-          let totalLum = 0;
-          let totalCount = 0;
-          let trLum = 0;
-          let trCount = 0;
-
-          const trStartX = Math.floor(sampleW * 0.70);
-          const trEndY = Math.floor(sampleH * 0.32);
-
-          for (let y = 0; y < sampleH; y++) {
-            for (let x = 0; x < sampleW; x++) {
-              const idx = (y * sampleW + x) * 4;
-              const lum = getRgbLuminance(data[idx], data[idx + 1], data[idx + 2]);
-              totalLum += lum;
-              totalCount++;
-
-              if (x >= trStartX && y <= trEndY) {
-                trLum += lum;
-                trCount++;
-              }
-            }
-          }
-
-          const result = {
-            overallIsLight: (totalLum / totalCount) > 145,
-            topRightIsLight: (trLum / Math.max(1, trCount)) > 155
-          };
-
-          luminanceCache.set(cacheKey, result);
-          callback(result);
-        } catch (err) {
-          luminanceCache.set(cacheKey, defaultResult);
-          callback(defaultResult);
-        }
-      };
-
-      img.onerror = function() {
-        callback(defaultResult);
-      };
-
-      img.src = src;
+      return { maxOffsetX, maxOffsetY };
     }
 
-    function applyAdaptiveContrastToCard(cardEl, src, bgHex) {
-      analyzeImageBrightness(src, bgHex, ({ overallIsLight, topRightIsLight }) => {
-        if (!cardEl || !cardEl.isConnected) return;
+    function clampImageOffsets(offsetX, offsetY, imgAspectRatio, zoom) {
+      const { maxOffsetX, maxOffsetY } = getMaxAllowedOffsets(imgAspectRatio, zoom);
+      const clampedX = Math.max(-maxOffsetX, Math.min(maxOffsetX, Number(offsetX) || 0));
+      const clampedY = Math.max(-maxOffsetY, Math.min(maxOffsetY, Number(offsetY) || 0));
+      return {
+        x: Math.round(clampedX * 100) / 100,
+        y: Math.round(clampedY * 100) / 100
+      };
+    }
 
-        const keyEl = cardEl.querySelector('[data-role="key-number"]');
-        const favIconEl = cardEl.querySelector('[data-role="card-fav-heart"]');
-        if (topRightIsLight) {
-          if (keyEl) {
-            keyEl.style.color = '#18181b';
-            keyEl.style.textShadow = '0 1px 3px rgba(255, 255, 255, 0.85)';
-          }
-          if (favIconEl) {
-            favIconEl.style.color = '#18181b';
-            favIconEl.style.filter = 'drop-shadow(0 1px 2px rgba(255, 255, 255, 0.85))';
-          }
-        } else {
-          if (keyEl) {
-            keyEl.style.color = '#ffffff';
-            keyEl.style.textShadow = '0 1px 4px rgba(0, 0, 0, 0.75)';
-          }
-          if (favIconEl) {
-            favIconEl.style.color = '#ffffff';
-            favIconEl.style.filter = 'drop-shadow(0 1px 3px rgba(0, 0, 0, 0.75))';
-          }
-        }
+    function applyClampedTransformToImgElement(imgEl, offsetX, offsetY, zoom) {
+      if (!imgEl) return;
+      const ratio = (imgEl.naturalWidth && imgEl.naturalHeight)
+        ? (imgEl.naturalWidth / imgEl.naturalHeight)
+        : CARD_ASPECT_RATIO;
+      const clamped = clampImageOffsets(offsetX, offsetY, ratio, zoom);
 
-        const overlayEl = cardEl.querySelector('[data-role="hover-overlay"]');
-        if (overlayEl) {
-          const subTexts = overlayEl.querySelectorAll('[data-role="sub-text"]');
-          const mainTitle = overlayEl.querySelector('[data-role="main-title"]');
-
-          if (overallIsLight) {
-            overlayEl.style.backgroundColor = 'rgba(250, 250, 250, 0.86)';
-            overlayEl.style.color = '#18181b';
-            subTexts.forEach(el => {
-              el.style.color = '#52525b';
-            });
-            if (mainTitle) {
-              mainTitle.style.color = '#09090b';
-            }
-          } else {
-            overlayEl.style.backgroundColor = 'rgba(9, 9, 11, 0.84)';
-            overlayEl.style.color = '#ffffff';
-            subTexts.forEach(el => {
-              el.style.color = '#d4d4d8';
-            });
-            if (mainTitle) {
-              mainTitle.style.color = '#ffffff';
-            }
-          }
-        }
-      });
+      if (imgEl.classList.contains('char-card-img')) {
+        imgEl.style.setProperty('--img-tx', `${clamped.x}%`);
+        imgEl.style.setProperty('--img-ty', `${clamped.y}%`);
+        imgEl.style.setProperty('--img-scale', `${zoom}`);
+      } else {
+        imgEl.style.transform = `translate(${clamped.x}%, ${clamped.y}%) scale(${zoom})`;
+        imgEl.style.transformOrigin = 'center center';
+      }
     }
 
     let toastTimer = null;
@@ -1172,6 +1110,23 @@
       seriesDatalist.innerHTML = sortedSeries.map(s => `<option value="${escapeHtml(s)}">`).join('');
     }
 
+    function toggleFilterDrawer() {
+      isFilterDrawerOpen = !isFilterDrawerOpen;
+      const drawer = document.getElementById('filterDrawer');
+      const btn = document.getElementById('toggleFilterDrawerBtn');
+      const chevron = document.getElementById('filterDrawerChevron');
+
+      if (isFilterDrawerOpen) {
+        drawer.classList.add('is-open');
+        btn.setAttribute('aria-expanded', 'true');
+        chevron.classList.add('rotate-180');
+      } else {
+        drawer.classList.remove('is-open');
+        btn.setAttribute('aria-expanded', 'false');
+        chevron.classList.remove('rotate-180');
+      }
+    }
+
     function toggleFavoriteFilter() {
       filterFavoritesOnly = !filterFavoritesOnly;
       const btn = document.getElementById('favFilterBtn');
@@ -1179,12 +1134,12 @@
 
       if (filterFavoritesOnly) {
         btn.classList.add('bg-mono-900', 'text-white', 'border-mono-900');
-        btn.classList.remove('bg-white', 'text-mono-700', 'border-mono-200');
+        btn.classList.remove('bg-mono-50', 'text-mono-700', 'border-mono-200');
         icon.classList.add('fill-white', 'text-white');
         icon.classList.remove('text-mono-400');
       } else {
         btn.classList.remove('bg-mono-900', 'text-white', 'border-mono-900');
-        btn.classList.add('bg-white', 'text-mono-700', 'border-mono-200');
+        btn.classList.add('bg-mono-50', 'text-mono-700', 'border-mono-200');
         icon.classList.remove('fill-white', 'text-white');
         icon.classList.add('text-mono-400');
       }
@@ -1211,6 +1166,7 @@
 
       const isFiltered = query !== '' || filterFavoritesOnly || keyVal !== 'all';
       document.getElementById('resetFiltersBtn').classList.toggle('hidden', !isFiltered);
+      document.getElementById('filterActiveDot').classList.toggle('hidden', !isFiltered);
 
       let filtered = characters.filter(c => {
         if (filterFavoritesOnly && !c.isFavorite) return false;
@@ -1287,21 +1243,21 @@
     }
 
     function createCharacterCardHtml(char) {
-      const fallbackImg = `https://placehold.co/600x800/27272a/a1a1aa?text=${encodeURIComponent(char.nameRomaji || 'No+Image')}`;
+      const fallbackImg = `https://placehold.co/600x900/27272a/a1a1aa?text=${encodeURIComponent(char.nameRomaji || 'No+Image')}`;
       const imgSrc = char.image || fallbackImg;
       const bgHex = char.imageBgColor || '#fafafa';
       const zoom = typeof char.imageZoom === 'number' ? char.imageZoom : 1;
       const offsetX = typeof char.imageOffsetX === 'number' ? char.imageOffsetX : 0;
       const offsetY = typeof char.imageOffsetY === 'number' ? char.imageOffsetY : 0;
 
-      const nonHoverHeartHtml = char.isFavorite
+      // 左下隅に配置する白色ハートマーク
+      const heartHtml = char.isFavorite
         ? `<div
-            data-role="card-fav-heart"
             style="color: #ffffff; filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.75));"
-            class="char-fav-indicator absolute top-7 sm:top-8 right-2.5 sm:right-3 z-10 pointer-events-none"
+            class="char-fav-indicator absolute bottom-2 left-2.5 sm:bottom-2.5 sm:left-3 z-20 pointer-events-none"
             title="Favorite"
           >
-            <svg class="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current" viewBox="0 0 24 24">
+            <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" viewBox="0 0 24 24">
               <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
             </svg>
           </div>`
@@ -1318,29 +1274,32 @@
             src="${escapeHtml(imgSrc)}"
             alt="${escapeHtml(char.nameRomaji)}"
             loading="lazy"
+            data-offset-x="${offsetX}"
+            data-offset-y="${offsetY}"
+            data-zoom="${zoom}"
             style="--img-tx: ${offsetX}%; --img-ty: ${offsetY}%; --img-scale: ${zoom};"
+            onload="applyClampedTransformToImgElement(this, ${offsetX}, ${offsetY}, ${zoom})"
             onerror="this.onerror=null; this.src='${fallbackImg}';"
-            class="w-full h-full object-cover"
+            class="char-card-img w-full h-full object-contain"
           />
 
+          <!-- 右下隅に配置するすりガラス背景のKey数バッジ -->
           <div
-            data-role="key-number"
-            style="color: #ffffff; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.75);"
-            class="absolute top-2 right-2.5 sm:top-2.5 sm:right-3 z-10 font-mono text-xs sm:text-sm font-semibold tracking-tight pointer-events-none transition-colors"
+            class="absolute bottom-2 right-2 sm:bottom-2.5 sm:right-2.5 z-20 px-2 py-0.5 rounded-md bg-black/45 backdrop-blur-md border border-white/15 text-white font-mono text-xs sm:text-sm font-semibold tracking-tight pointer-events-none"
           >
             ${Number(char.keyCount) || 0}
           </div>
 
-          ${nonHoverHeartHtml}
+          ${heartHtml}
 
+          <!-- PCホバー時のみ: 画像ぼかし＋ズームのみ、上下左右センタリングの白文字表示 -->
           <div
-            data-role="hover-overlay"
-            class="char-overlay absolute inset-0 z-20 bg-mono-950/84 backdrop-blur-[2px] p-3 sm:p-4 flex-col justify-end text-white"
+            class="char-overlay absolute inset-0 z-10 p-3 sm:p-4 flex-col items-center justify-center text-center text-white"
           >
-            <div>
-              ${char.series ? `<p data-role="sub-text" class="text-[10px] sm:text-[11px] text-mono-300 tracking-wide truncate mb-0.5">${escapeHtml(char.series)}</p>` : ''}
-              <h3 data-role="main-title" class="text-sm sm:text-base font-semibold leading-snug text-white tracking-tight">${escapeHtml(char.nameRomaji)}</h3>
-              ${char.nameJp ? `<p data-role="sub-text" class="text-[11px] text-mono-300 leading-tight mt-0.5">${escapeHtml(char.nameJp)}</p>` : ''}
+            <div class="w-full max-w-full px-1" style="text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85), 0 1px 2px rgba(0, 0, 0, 0.9);">
+              ${char.series ? `<p class="text-[10px] sm:text-[11px] text-white/90 tracking-wide truncate mb-0.5">${escapeHtml(char.series)}</p>` : ''}
+              <h3 class="text-sm sm:text-base font-semibold leading-snug text-white tracking-tight break-words">${escapeHtml(char.nameRomaji)}</h3>
+              ${char.nameJp ? `<p class="text-[11px] text-white/95 leading-tight mt-0.5 break-words">${escapeHtml(char.nameJp)}</p>` : ''}
             </div>
           </div>
         </article>
@@ -1386,14 +1345,6 @@
       }
 
       grid.innerHTML = list.map(c => createCharacterCardHtml(c)).join('');
-
-      const charMap = new Map(list.map(c => [c.id, c]));
-      document.querySelectorAll('.char-card[data-char-id]').forEach(cardEl => {
-        const c = charMap.get(cardEl.getAttribute('data-char-id'));
-        if (c) {
-          applyAdaptiveContrastToCard(cardEl, c.image, c.imageBgColor || '#fafafa');
-        }
-      });
     }
 
     // ==================== CHARACTER DETAIL POPUP MODAL ====================
@@ -1402,15 +1353,12 @@
       if (!char) return;
 
       activeDetailCharId = char.id;
-      const fallbackImg = `https://placehold.co/600x800/27272a/a1a1aa?text=${encodeURIComponent(char.nameRomaji || 'No+Image')}`;
+      const fallbackImg = `https://placehold.co/600x900/27272a/a1a1aa?text=${encodeURIComponent(char.nameRomaji || 'No+Image')}`;
       const imgSrc = char.image || fallbackImg;
       const bgHex = char.imageBgColor || '#fafafa';
       const zoom = typeof char.imageZoom === 'number' ? char.imageZoom : 1;
       const offsetX = typeof char.imageOffsetX === 'number' ? char.imageOffsetX : 0;
       const offsetY = typeof char.imageOffsetY === 'number' ? char.imageOffsetY : 0;
-
-      const headerSeries = document.getElementById('detailHeaderSeries');
-      headerSeries.textContent = char.series || char.nameRomaji || '';
 
       const favBadge = document.getElementById('detailFavoriteBadge');
       if (char.isFavorite) {
@@ -1425,38 +1373,16 @@
       imgContainer.style.backgroundColor = bgHex;
 
       const imgEl = document.getElementById('detailImage');
+      imgEl.onload = function() {
+        applyClampedTransformToImgElement(this, offsetX, offsetY, zoom);
+      };
       imgEl.onerror = function() {
         this.onerror = null;
         this.src = fallbackImg;
       };
       imgEl.src = imgSrc;
       imgEl.alt = char.nameRomaji || '';
-      imgEl.style.transform = `translate(${offsetX}%, ${offsetY}%) scale(${zoom})`;
-      imgEl.style.transformOrigin = 'center center';
-
-      const keyNumEl = document.getElementById('detailKeyNumber');
-      keyNumEl.textContent = Number(char.keyCount) || 0;
-
-      const cardHeartEl = document.getElementById('detailCardHeart');
-      if (char.isFavorite) {
-        cardHeartEl.classList.remove('hidden');
-      } else {
-        cardHeartEl.classList.add('hidden');
-      }
-
-      analyzeImageBrightness(imgSrc, bgHex, ({ topRightIsLight }) => {
-        if (topRightIsLight) {
-          keyNumEl.style.color = '#18181b';
-          keyNumEl.style.textShadow = '0 1px 3px rgba(255, 255, 255, 0.85)';
-          cardHeartEl.style.color = '#18181b';
-          cardHeartEl.style.filter = 'drop-shadow(0 1px 2px rgba(255, 255, 255, 0.85))';
-        } else {
-          keyNumEl.style.color = '#ffffff';
-          keyNumEl.style.textShadow = '0 1px 4px rgba(0, 0, 0, 0.75)';
-          cardHeartEl.style.color = '#ffffff';
-          cardHeartEl.style.filter = 'drop-shadow(0 1px 3px rgba(0, 0, 0, 0.75))';
-        }
-      });
+      applyClampedTransformToImgElement(imgEl, offsetX, offsetY, zoom);
 
       const seriesEl = document.getElementById('detailSeries');
       if (char.series) {
@@ -1560,7 +1486,7 @@
       applyFilters();
     }
 
-    // ==================== SNS風 ドラッグ位置調整＆ズーム処理 ====================
+    // ==================== SNS風 ドラッグ位置調整＆ズーム処理（画像境界内制限付き） ====================
     function setupPreviewDragEvents() {
       const container = document.getElementById('previewContainer');
       if (!container) return;
@@ -1583,8 +1509,14 @@
         const deltaXPct = ((e.clientX - dragStartX) / rect.width) * 100;
         const deltaYPct = ((e.clientY - dragStartY) / rect.height) * 100;
 
-        currentImageOffsetX = clampOffset(dragOriginOffsetX + deltaXPct);
-        currentImageOffsetY = clampOffset(dragOriginOffsetY + deltaYPct);
+        const clamped = clampImageOffsets(
+          dragOriginOffsetX + deltaXPct,
+          dragOriginOffsetY + deltaYPct,
+          currentImageAspectRatio,
+          currentImageZoom
+        );
+        currentImageOffsetX = clamped.x;
+        currentImageOffsetY = clamped.y;
         applyPreviewImageTransform();
       });
 
@@ -1600,8 +1532,14 @@
       container.addEventListener('pointercancel', endDrag);
     }
 
-    function clampOffset(val) {
-      return Math.max(-75, Math.min(75, Math.round(val * 10) / 10));
+    function handlePreviewImageLoad() {
+      const img = document.getElementById('imagePreview');
+      if (img && img.naturalWidth && img.naturalHeight) {
+        currentImageAspectRatio = img.naturalWidth / img.naturalHeight;
+      } else {
+        currentImageAspectRatio = CARD_ASPECT_RATIO;
+      }
+      applyPreviewImageTransform();
     }
 
     function handleZoomChange(val) {
@@ -1625,6 +1563,14 @@
     function applyPreviewImageTransform() {
       const img = document.getElementById('imagePreview');
       if (!img) return;
+      const clamped = clampImageOffsets(
+        currentImageOffsetX,
+        currentImageOffsetY,
+        currentImageAspectRatio,
+        currentImageZoom
+      );
+      currentImageOffsetX = clamped.x;
+      currentImageOffsetY = clamped.y;
       img.style.transform = `translate(${currentImageOffsetX}%, ${currentImageOffsetY}%) scale(${currentImageZoom})`;
       img.style.transformOrigin = 'center center';
     }
@@ -1749,22 +1695,6 @@
       if (colorInput) colorInput.value = currentImageBgColor;
       if (hexLabel) hexLabel.textContent = currentImageBgColor;
       if (previewContainer) previewContainer.style.backgroundColor = currentImageBgColor;
-
-      updatePreviewKeyBadgeColor();
-    }
-
-    function updatePreviewKeyBadgeColor() {
-      const badge = document.getElementById('previewKeyBadge');
-      if (!badge) return;
-      analyzeImageBrightness(currentImageData, currentImageBgColor, ({ topRightIsLight }) => {
-        if (topRightIsLight) {
-          badge.style.color = '#18181b';
-          badge.style.textShadow = '0 1px 3px rgba(255, 255, 255, 0.85)';
-        } else {
-          badge.style.color = '#ffffff';
-          badge.style.textShadow = '0 1px 4px rgba(0, 0, 0, 0.75)';
-        }
-      });
     }
 
     function setPreviewImage(src) {
@@ -1786,7 +1716,6 @@
         placeholder.innerHTML = `<p class="text-xs text-mono-400">プレビュー</p>`;
         if (dragHint) dragHint.classList.add('hidden');
       }
-      updatePreviewKeyBadgeColor();
     }
 
     function handlePreviewError() {
