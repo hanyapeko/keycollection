@@ -321,6 +321,7 @@
                 onchange="applyFilters()"
                 class="w-full px-3 py-2 text-xs sm:text-sm bg-mono-50 border border-mono-200 rounded-lg text-mono-700 focus:outline-none focus:bg-white focus:border-mono-500 transition-colors"
               >
+                <option value="updated">更新が新しい順</option>
                 <option value="newest">登録が新しい順</option>
                 <option value="oldest">登録が古い順</option>
                 <option value="key_desc">Key数が多い順</option>
@@ -903,7 +904,8 @@
         imageOffsetX: 0,
         imageOffsetY: 0,
         isSample: true,
-        createdAt: Date.now() - 300000
+        createdAt: Date.now() - 300000,
+        updatedAt: Date.now() - 300000
       },
       {
         id: 'sample_2',
@@ -924,7 +926,8 @@
         imageOffsetX: 0,
         imageOffsetY: 0,
         isSample: true,
-        createdAt: Date.now() - 200000
+        createdAt: Date.now() - 200000,
+        updatedAt: Date.now() - 200000
       },
       {
         id: 'sample_3',
@@ -944,7 +947,8 @@
         imageOffsetX: 0,
         imageOffsetY: 0,
         isSample: true,
-        createdAt: Date.now() - 100000
+        createdAt: Date.now() - 100000,
+        updatedAt: Date.now() - 100000
       }
     ];
 
@@ -987,6 +991,8 @@
     }
 
     function normalizeCharacter(c) {
+      const created = typeof c.createdAt === 'number' ? c.createdAt : 0;
+      const updated = typeof c.updatedAt === 'number' ? c.updatedAt : created;
       return {
         ...c,
         isFavorite: Boolean(c.isFavorite),
@@ -994,7 +1000,9 @@
         imageBgColor: c.imageBgColor || '#fafafa',
         imageZoom: typeof c.imageZoom === 'number' ? c.imageZoom : 1,
         imageOffsetX: typeof c.imageOffsetX === 'number' ? c.imageOffsetX : 0,
-        imageOffsetY: typeof c.imageOffsetY === 'number' ? c.imageOffsetY : 0
+        imageOffsetY: typeof c.imageOffsetY === 'number' ? c.imageOffsetY : 0,
+        createdAt: created,
+        updatedAt: updated
       };
     }
 
@@ -1196,11 +1204,16 @@
       filtered.sort((a, b) => {
         const keyA = Number(a.keyCount) || 0;
         const keyB = Number(b.keyCount) || 0;
+        const updA = a.updatedAt || a.createdAt || 0;
+        const updB = b.updatedAt || b.createdAt || 0;
+        if (sortVal === 'updated') {
+          return updB - updA || (b.createdAt || 0) - (a.createdAt || 0);
+        }
         if (sortVal === 'key_desc') {
-          return keyB - keyA || (b.createdAt || 0) - (a.createdAt || 0);
+          return keyB - keyA || updB - updA;
         }
         if (sortVal === 'key_asc') {
-          return keyA - keyB || (b.createdAt || 0) - (a.createdAt || 0);
+          return keyA - keyB || updB - updA;
         }
         if (sortVal === 'newest') {
           return (b.createdAt || 0) - (a.createdAt || 0);
@@ -2000,6 +2013,7 @@
       }
 
       const imageToSave = currentImageData || `https://placehold.co/600x800/27272a/f4f4f5?text=${encodeURIComponent(nameRomaji)}`;
+      const now = Date.now();
 
       if (id) {
         const idx = characters.findIndex(c => c.id === id);
@@ -2019,13 +2033,14 @@
             imageZoom: currentImageZoom,
             imageOffsetX: currentImageOffsetX,
             imageOffsetY: currentImageOffsetY,
-            isSample: false
+            isSample: false,
+            updatedAt: now
           };
         }
         showToast('更新しました');
       } else {
         const newChar = {
-          id: 'char_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+          id: 'char_' + now + '_' + Math.random().toString(36).slice(2, 6),
           nameRomaji,
           nameJp,
           keyCount,
@@ -2040,7 +2055,8 @@
           imageOffsetX: currentImageOffsetX,
           imageOffsetY: currentImageOffsetY,
           isSample: false,
-          createdAt: Date.now()
+          createdAt: now,
+          updatedAt: now
         };
         characters.unshift(newChar);
         showToast('登録しました');
